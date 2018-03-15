@@ -300,10 +300,12 @@ class RunDb:
     run['results_stale'] = True
 
     # Update spsa results
-    if 'spsa' in run['args'] and spsa_games == spsa['num_games']:
-      self.update_spsa(run, spsa)
-
-    self.runs.save(run)
+    if 'spsa' in run['args']:
+      if spsa_games == spsa['num_games']:
+        self.update_spsa(run, spsa)
+        self.runs.save(run)
+    else:
+      self.runs.save(run)
 
     # Check if SPRT stopping is enabled
     if 'sprt' in run['args']:

@@ -143,6 +143,7 @@ class RunDb:
   # Cache runs
   run_cache = {}
   run_cache_lock = threading.Lock()
+  run_cache_write_lock = threading.Lock()
 
   timer = None
 
@@ -166,7 +167,8 @@ class RunDb:
       id = str(run['_id'])
       if flush:
         self.run_cache[id] = { 'dirty': False, 'rtime': time.time(), 'ftime': time.time(), 'run': run }
-        self.runs.save(run)
+        with self.run_cache_write_lock:
+          self.runs.save(run)
       else:
         if id in self.run_cache:
           ftime = self.run_cache[id]['ftime']
@@ -189,7 +191,8 @@ class RunDb:
       if not oldest is None:
         if int(now) % 60 == 0:
           self.scavenge(self.run_cache[oldest]['run'])
-        self.runs.save(self.run_cache[oldest]['run'])
+        with self.run_cache_write_lock:
+          self.runs.save(self.run_cache[oldest]['run'])
         self.run_cache[oldest]['dirty'] = False
         self.run_cache[oldest]['ftime'] = time.time()
       self.timer = threading.Timer(1.0, self.flush_buffers)
@@ -205,7 +208,7 @@ class RunDb:
     return list(self.get_unfinished_runs()) + self.get_finished_runs()[0]
 
   def get_unfinished_runs(self):
-    with self.run_lock:
+    with self.run_cache_write_lock:
       return self.runs.find({'finished': False},
                           sort=[('last_updated', DESCENDING), ('start_time', DESCENDING)])
 

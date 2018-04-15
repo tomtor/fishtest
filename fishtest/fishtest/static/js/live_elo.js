@@ -205,7 +205,7 @@ function extract_items(text){
         return items;
     }
 
-    start=text.indexOf('">Pending...');
+    start=text.indexOf('Pending...');
     if(start!=-1){
         items.return_code=ItemEnum.pending;
         items.msg="This test is still pending.";
@@ -417,7 +417,7 @@ function follow_live(retry){
     }
     var xhttp = new XMLHttpRequest();
     var timestamp=(new Date()).getTime();
-    xhttp.open("GET", "/tests/view/"+test, true);
+    xhttp.open("GET", "/tests/view/"+test+'?'+timestamp, true);
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
             if(this.status == 200){

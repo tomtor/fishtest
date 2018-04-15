@@ -89,7 +89,7 @@ def signup(request):
     if not result:
       request.session.flash('Invalid username')
     else:
-      request.session.flash('Please request activation of your account on the Forum')
+      request.session.flash('Your account will be activated by an administrator soon...')
       return HTTPFound(location=request.route_url('login'))
 
   return {}

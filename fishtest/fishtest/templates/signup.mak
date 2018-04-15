@@ -2,10 +2,10 @@
 
 <div>
 <p>
-After creating an account please have it activated on:
+Note that many modern browsers can generate/remember a strong password for you.
 </p>
 <p>
-<a href="https://groups.google.com/forum/?fromgroups=#!forum/fishcooking">https://groups.google.com/forum/?fromgroups=#!forum/fishcooking</a>
+If it is not suggested by default you can try right-clicking on the password entry field.
 </p>
 <form class="form-horizontal" action="" method="POST">
   <legend>Create new user</legend>

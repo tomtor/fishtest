@@ -128,7 +128,8 @@ function display_data(items){
     document.getElementById("elo").innerHTML=j.elo.toFixed(2)+" ["+j.ci_lower.toFixed(2)+","+j.ci_upper.toFixed(2)+"] ("+100*(1-j.p).toFixed(2)+"%"+")";
     document.getElementById("LLR").innerHTML=j.LLR.toFixed(2)+" ["+j.a.toFixed(2)+","+j.b.toFixed(2)+"]"+(items.args.sprt.state?" ("+items.args.sprt.state+")":"");
     document.getElementById("LOS").innerHTML=""+(100*j.LOS).toFixed(1)+"%";
-    document.getElementById("games").innerHTML=j.games+" [w:"+(100*j.W/j.games).toFixed(1)+"%, l:"+(100*j.L/j.games).toFixed(1)+"%, d:"+(100*j.D/j.games).toFixed(1)+"%]";
+    document.getElementById("games").innerHTML=j.games+" [w:"+(100*Math.round(j.W)/(j.games+0.001)).toFixed(1)+"%, l:"
+     +(100*Math.round(j.L)/(j.games+0.001)).toFixed(1)+"%, d:"+(100*Math.round(j.D)/(j.games+0.001)).toFixed(1)+"%]";
 
     document.getElementById("link").innerHTML="<a href="+link+">"+link+"</a>";
     set_gauges(j.LLR,j.a,j.b,j.LOS,j.elo,j.ci_lower,j.ci_upper);

@@ -137,9 +137,9 @@ function display_data(items){
     document.getElementById("data").style.visibility="visible";
     document.getElementById("commit").innerHTML="<a href="+items.args.tests_repo+"/compare/"
      +items.args.resolved_base+"..."+items.args.resolved_new+">"+escapeHtml(items.args.new_tag)+" ("+escapeHtml(items.args.msg_new)+")</a>";
-    document.getElementById("username").innerHTML=items.args.username;
-    document.getElementById("tc").innerHTML=items.args.tc;
-    document.getElementById("info").innerHTML=items.args.info;
+    document.getElementById("username").innerHTML=escapeHtml(items.args.username);
+    document.getElementById("tc").innerHTML=escapeHtml(items.args.tc);
+    document.getElementById("info").innerHTML=escapeHtml(items.args.info);
     document.getElementById("sprt").innerHTML="elo0:&nbsp;"+j.elo_raw0.toFixed(2)+"&nbsp;&nbsp;alpha:&nbsp;"+j.alpha.toFixed(2)+"&nbsp;&nbsp;elo1:&nbsp;"+j.elo_raw1.toFixed(2)+"&nbsp;&nbsp;beta:&nbsp;"+j.beta.toFixed(2);
     document.getElementById("elo").innerHTML=j.elo.toFixed(2)+" ["+j.ci_lower.toFixed(2)+","+j.ci_upper.toFixed(2)+"] ("+100*(1-j.p).toFixed(2)+"%"+")";
     document.getElementById("LLR").innerHTML=j.LLR.toFixed(2)+" ["+j.a.toFixed(2)+","+j.b.toFixed(2)+"]"+(items.args.sprt.state?" ("+items.args.sprt.state+")":"");

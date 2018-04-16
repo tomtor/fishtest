@@ -205,7 +205,7 @@ function extract_items(text){
         return items;
     }
 
-    start=text.indexOf('">Pending...');
+    start=text.indexOf('Pending...');
     if(start!=-1){
         items.return_code=ItemEnum.pending;
         items.msg="This test is still pending.";

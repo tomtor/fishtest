@@ -50,25 +50,6 @@ function sanitizeURL(url){
     return "/tests/view/"+url;
 }
 
-var ItemEnum={
-    no_error              :  0,
-    network_error         :  1,
-    internal_server_error :  2,
-    not_a_valid_url       :  3,
-    pending               :  4,
-    no_id                 :  5,
-    no_diff               :  6,
-    not_SPRT              :  7,
-    no_test_data          :  8,
-    no_commit             :  9,
-    no_sprt_state         : 10,
-    no_tc                 : 11,
-    no_username           : 12,
-    no_info               : 13,
-    general_error         : 99
-}
-
-
 function set_gauges(LLR,a,b,LOS,elo,ci_lower,ci_upper){
     if(!set_gauges.last_elo){
         set_gauges.last_elo=0;
@@ -145,7 +126,7 @@ function display_data(items){
     document.getElementById("info").innerHTML=items.args.info;
     document.getElementById("sprt").innerHTML="elo0:&nbsp;"+j.elo_raw0.toFixed(2)+"&nbsp;&nbsp;alpha:&nbsp;"+j.alpha.toFixed(2)+"&nbsp;&nbsp;elo1:&nbsp;"+j.elo_raw1.toFixed(2)+"&nbsp;&nbsp;beta:&nbsp;"+j.beta.toFixed(2);
     document.getElementById("elo").innerHTML=j.elo.toFixed(2)+" ["+j.ci_lower.toFixed(2)+","+j.ci_upper.toFixed(2)+"] ("+100*(1-j.p).toFixed(2)+"%"+")";
-    document.getElementById("LLR").innerHTML=j.LLR.toFixed(2)+" ["+j.a.toFixed(2)+","+j.b.toFixed(2)+"]"+(items.state!="-"?" ("+items.state+")":"");
+    document.getElementById("LLR").innerHTML=j.LLR.toFixed(2)+" ["+j.a.toFixed(2)+","+j.b.toFixed(2)+"]"+(items.args.state!="-"?" ("+items.args.state+")":"");
     document.getElementById("LOS").innerHTML=""+(100*j.LOS).toFixed(1)+"%";
     document.getElementById("games").innerHTML=j.games+" [w:"+(100*j.W/j.games).toFixed(1)+"%, l:"+(100*j.L/j.games).toFixed(1)+"%, d:"+(100*j.D/j.games).toFixed(1)+"%]";
 

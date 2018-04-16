@@ -22,8 +22,7 @@ Module.onRuntimeInitialized=function() {
     });
 }
 
-function compute(export_arguments){
-    var m=export_arguments;
+function compute(m){
     var sprt= m.args.sprt;
     var ret=Module.ccall('export_json',
                          'string',

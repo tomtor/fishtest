@@ -10,17 +10,6 @@
   </head>
   <body>
     <div class="container">
-      <ul id="_tab_list" class="nav nav-tabs">
-        <li class="nav-item" id="_new" style="visibility:hidden;">
-          <span  class="nav-link pointer" onClick="Tab_list.show(this.parentNode.id.slice(1));"> New... </span> 
-        </li>
-      </ul>
-      <div class="d-flex">
-        <input type="text" id="live" placeholder="Copy/paste test URL from fishtest." value=""
-               onkeydown = "if (event.keyCode == 13) follow_live(false);" style="flex-grow:1;">
-        <button onclick="follow_live(false);" style="flex-grow:0;"><i class="material-icons" style="vertical-align:bottom;">get_app</i></button>
-        <button onclick="Tab_list.delete_active();" style="flex-grow:0;"><i class="material-icons" style="vertical-align:bottom;">cancel</i></button>
-      </div>
       <br>
       <div class="d-flex justify-content-center">
         <div id="LLR_chart_div" style="display:inline-block;"></div>

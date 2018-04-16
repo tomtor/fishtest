@@ -38,8 +38,8 @@ def strip_run(run):
     del run['tasks']
   if 'bad_tasks' in run:
     del run['bad_tasks']
-  if 'spsa' in run['args']:
-    del run['args']['spsa']
+  if 'spsa' in run['args'] and 'param_history' in run['args']['spsa']:
+    del run['args']['spsa']['param_history']
   run['_id'] = str(run['_id'])
   run['start_time'] = str(run['start_time'])
   run['last_updated'] = str(run['last_updated'])
@@ -55,7 +55,7 @@ def active_runs(request):
 @view_config(route_name='api_get_run', renderer='string')
 def get_run(request):
   run = request.rundb.get_run(request.matchdict['id'])
-  return json.dumps(strip_run(run))
+  return json.dumps(strip_run(run.copy()))
 
 @view_config(route_name='api_request_task', renderer='string')
 def request_task(request):

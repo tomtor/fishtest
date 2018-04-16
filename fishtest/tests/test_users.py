@@ -41,6 +41,7 @@ class Create2LoginTest(unittest.TestCase):
     config = testing.setUp(request = self.request)
 
   def tearDown(self):
+    self.request.userdb.users.delete_many({'username': 'JoeUser'})
     testing.tearDown()
 
   def test_logins(self):

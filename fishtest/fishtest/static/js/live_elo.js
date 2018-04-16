@@ -119,7 +119,7 @@ function display_data(items){
     document.getElementById("error").style.display="none";
     document.getElementById("data").style.visibility="visible";
     document.getElementById("commit").innerHTML="<a href="+items.args.tests_repo+"/compare/"
-     +items.args.resolved_base+"..."+items.args.resolved_new+">"+items.args.new_tag+"</a>";
+     +items.args.resolved_base+"..."+items.args.resolved_new+">"+items.args.new_tag+" ("+items.args.msg_new+")</a>";
     document.getElementById("username").innerHTML=items.args.username;
     document.getElementById("tc").innerHTML=items.args.tc;
     document.getElementById("info").innerHTML=items.args.info;

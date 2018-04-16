@@ -364,13 +364,13 @@ function clear_gauges(){
 }
 
 function display_data(items){
-    Tab_list.add(items.id,items.commit,true);
+    Tab_list.add(items._id,items.new_tag,true);
     var link=sanitizeURL(items.id);
 
     var j=compute(items.export_arguments);
     document.getElementById("error").style.display="none";
     document.getElementById("data").style.visibility="visible";
-    document.getElementById("commit").innerHTML="<a href="+items.diff+">"+items.commit+"</a>";
+    document.getElementById("commit").innerHTML="<a href="+items.diff+">"+items.new_tag+"</a>";
     document.getElementById("username").innerHTML=items.username;
     document.getElementById("tc").innerHTML=items.tc;
     document.getElementById("info").innerHTML=items.info;
@@ -417,10 +417,11 @@ function follow_live(retry){
     }
     var xhttp = new XMLHttpRequest();
     var timestamp=(new Date()).getTime();
-    xhttp.open("GET", "/tests/view/"+test, true);
+    xhttp.open("GET", "/api/get_run/"+test, true);
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
             if(this.status == 200){
+            	/*
                 let items=extract_items(this.responseText);
                 if(items.return_code==ItemEnum.no_error){
                     display_data(items);
@@ -430,6 +431,8 @@ function follow_live(retry){
                 }else{
                     alert_(items.msg);
                 }
+                */
+            	display_data(this.responseText)
             }else{
                 if(retry){
                     follow_live.timer_once=setTimeout(follow_live,20000,true);

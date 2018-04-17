@@ -187,9 +187,10 @@ function follow_live(testURL, retry){
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
             if(this.status == 200){
-                if(!items.args.sprt.state)
+                var m= JSON.parse(this.responseText)
+                if(!m.args.sprt.state)
                   follow_live.timer_once=setTimeout(follow_live,20000,testURL,true);
-                display_data(JSON.parse(this.responseText))
+                display_data(m)
             }else{
                 if(retry){
                     follow_live.timer_once=setTimeout(follow_live,20000,testURL,true);

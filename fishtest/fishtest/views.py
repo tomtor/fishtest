@@ -10,6 +10,7 @@ import smtplib
 import requests
 import time
 import threading
+import re
 
 from email.mime.text import MIMEText
 from collections import defaultdict
@@ -242,6 +243,12 @@ def users_monthly(request):
   users.sort(key=lambda k: k['cpu_hours'], reverse=True)
   return {'users': users}
 
+def get_master_bench():
+  for c in requests.get('https://api.github.com/repos/official-stockfish/Stockfish/commits').json():
+    m = re.search('\s*[Bb]ench[ :]+([0-9]{7})', c['commit']['message'])
+    if m:
+      return m.group(1)
+
 def get_sha(branch, repo_url):
   """Resolves the git branch to sha commit"""
   api_url = repo_url.replace('https://github.com', 'https://api.github.com/repos')
@@ -381,6 +388,9 @@ def tests_run(request):
   run_args = {}
   if 'id' in request.params:
     run_args = request.rundb.get_run(request.params['id'])['args']
+
+  if not 'base_signature' in run_args:
+    run_args['base_signature'] = get_master_bench()
 
   username = authenticated_userid(request)
   u = request.userdb.get_user(username)

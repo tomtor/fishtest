@@ -187,11 +187,12 @@ function follow_live(testURL, retry){
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
             if(this.status == 200){
-                follow_live.timer_once=setTimeout(follow_live,20000,testURL,true);
+                if(!items.args.sprt.state)
+                  follow_live.timer_once=setTimeout(follow_live,20000,testURL,true);
                 display_data(JSON.parse(this.responseText))
             }else{
                 if(retry){
-                    follow_live.timer_once=setTimeout(follow_live,20000,true);
+                    follow_live.timer_once=setTimeout(follow_live,20000,testURL,true);
                 }else{
                    alert_("Network or server error.");
                 }

@@ -10,6 +10,7 @@ import smtplib
 import requests
 import time
 import threading
+import re
 
 from email.mime.text import MIMEText
 from collections import defaultdict
@@ -242,6 +243,12 @@ def users_monthly(request):
   users.sort(key=lambda k: k['cpu_hours'], reverse=True)
   return {'users': users}
 
+def get_master_bench():
+  for c in requests.get('https://api.github.com/repos/official-stockfish/Stockfish/commits').json():
+    m = re.search('\s*[Bb]ench[ :]+([0-9]{7})', c['commit']['message'])
+    if m:
+      return m.group(1)
+
 def get_sha(branch, repo_url):
   """Resolves the git branch to sha commit"""
   api_url = repo_url.replace('https://github.com', 'https://api.github.com/repos')
@@ -318,6 +325,19 @@ def validate_form(request):
 
   if len(data['resolved_base']) == 0 or len(data['resolved_new']) == 0:
     raise Exception('Unable to find branch!')
+  
+  # Check entered bench
+  if data['base_tag'] == 'master':
+    found = False
+    api_url = data['tests_repo'].replace('https://github.com', 'https://api.github.com/repos')
+    api_url += '/commits'
+    for c in requests.get(api_url).json():
+      m = re.search('\s*[Bb]ench[ :]+([0-9]{7})', c['commit']['message'])
+      if m:
+        found = True
+        break
+    if not found or m.group(1) != data['base_signature']:
+      raise Exception('Bench signature of Base master does not match, please "git pull upstream master" !')
 
   stop_rule = request.POST['stop_rule']
 
@@ -385,7 +405,7 @@ def tests_run(request):
   username = authenticated_userid(request)
   u = request.userdb.get_user(username)
 
-  return { 'args': run_args, 'tests_repo': u.get('tests_repo', '') }
+  return { 'args': run_args, 'tests_repo': u.get('tests_repo', ''), 'bench': get_master_bench() }
 
 def can_modify_run(request, run):
   return run['args']['username'] == authenticated_userid(request) or has_permission('approve_run', request.context, request)

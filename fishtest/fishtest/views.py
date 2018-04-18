@@ -325,6 +325,19 @@ def validate_form(request):
 
   if len(data['resolved_base']) == 0 or len(data['resolved_new']) == 0:
     raise Exception('Unable to find branch!')
+  
+  # Check entered bench
+  if data['base_tag'] == 'master':
+    found = False
+    api_url = data['tests_repo'].replace('https://github.com', 'https://api.github.com/repos')
+    api_url += '/Stockfish/commits'
+    for c in requests.get(api_url).json():
+      m = re.search('\s*[Bb]ench[ :]+([0-9]{7})', c['commit']['message'])
+      if m:
+        found = True
+        break
+    if not found:
+      raise Exception('Bench signature of master does not match, "git pull upstream master"!')
 
   stop_rule = request.POST['stop_rule']
 

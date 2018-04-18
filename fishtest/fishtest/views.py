@@ -194,7 +194,14 @@ def pending(request):
     request.session.flash('You cannot view pending users')
     return HTTPFound(location=request.route_url('tests'))
   users = request.userdb.get_pending()
-  return { 'users': users }
+  idle = {}
+  for u in request.userdb.get_users():
+    idle[u['username']] = u
+  for u in request.userdb.user_cache.find():
+    del idle[u['username']]
+  idle= idle.values()
+
+  return { 'users': users, 'idle': idle }
 
 @view_config(route_name='user', renderer='user.mak')
 @view_config(route_name='profile', renderer='user.mak')

@@ -194,7 +194,28 @@ def pending(request):
     request.session.flash('You cannot view pending users')
     return HTTPFound(location=request.route_url('tests'))
   users = request.userdb.get_pending()
-  return { 'users': users }
+  idle = {}
+  for u in request.userdb.get_users():
+    idle[u['username']] = u
+  for u in request.userdb.user_cache.find():
+    del idle[u['username']]
+  idle= idle.values()
+
+  return { 'users': users, 'idle': idle }
+
+@view_config(route_name='drop')
+def drop(request):
+  userid = authenticated_userid(request)
+  if not userid:
+    request.session.flash('Please login')
+    return HTTPFound(location=request.route_url('login'))
+  if not has_permission('approve_run', request.context, request):
+    request.session.flash('You cannot drop idle users')
+    return HTTPFound(location=request.route_url('tests'))
+  
+  request.userdb.users.delete_many({'username': request.matchdict.get('username')})
+  return HTTPFound(location=request.route_url('pending'))
+
 
 @view_config(route_name='user', renderer='user.mak')
 @view_config(route_name='profile', renderer='user.mak')

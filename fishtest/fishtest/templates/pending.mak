@@ -27,6 +27,7 @@
   <tr>
    <th>Username</th>
    <th>Registration Time</th>
+   <th>Drop</th>
    <th>eMail</th>
   </tr>
  </thead>
@@ -35,7 +36,8 @@
   <tr>
    <td style="width:15%"><a href="/user/${user['username']}">${user['username']}</a></td>
    <td style="width:15%">${user['registration_time'].strftime("%d-%m-%y %H:%M:%S") if 'registration_time' in user else 'Unknown'}</td>
-   <td style="width:70%">${user['email']}</td>
+   <td style="width:10%;color:red"><a href="/drop/${user['username']}">DROP</a></td>
+   <td style="width:60%">${user['email']}</td>
   </tr>
  %endfor
  </tbody>

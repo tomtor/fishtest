@@ -50,7 +50,7 @@
   <div class="control-group">
     <label class="control-label">Base signature:</label>
     <div class="controls">
-      <input name="base-signature" value="${args.get('base_signature', '')}" ${'readonly' if re_run else ''}>
+      <input name="base-signature" value="${args.get('base_signature', bench)}" ${'readonly' if re_run else ''}>
     </div>
   </div>
   <div class="control-group">

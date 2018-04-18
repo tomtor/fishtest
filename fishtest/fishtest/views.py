@@ -389,13 +389,10 @@ def tests_run(request):
   if 'id' in request.params:
     run_args = request.rundb.get_run(request.params['id'])['args']
 
-  if not 'base_signature' in run_args:
-    run_args['base_signature'] = get_master_bench()
-
   username = authenticated_userid(request)
   u = request.userdb.get_user(username)
 
-  return { 'args': run_args, 'tests_repo': u.get('tests_repo', '') }
+  return { 'args': run_args, 'tests_repo': u.get('tests_repo', ''), 'bench': get_master_bench() }
 
 def can_modify_run(request, run):
   return run['args']['username'] == authenticated_userid(request) or has_permission('approve_run', request.context, request)

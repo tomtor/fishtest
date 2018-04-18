@@ -330,14 +330,15 @@ def validate_form(request):
   if data['base_tag'] == 'master':
     found = False
     api_url = data['tests_repo'].replace('https://github.com', 'https://api.github.com/repos')
-    api_url += '/Stockfish/commits'
+    api_url = api_url + '/commits'
+    print(api_url)
     for c in requests.get(api_url).json():
       m = re.search('\s*[Bb]ench[ :]+([0-9]{7})', c['commit']['message'])
       if m:
         found = True
         break
-    if not found:
-      raise Exception('Bench signature of master does not match, "git pull upstream master"!')
+    if not found or m.group(1) != data['base_signature']:
+      raise Exception('Bench signature of Base master does not match, please "git pull upstream master" !')
 
   stop_rule = request.POST['stop_rule']
 

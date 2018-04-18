@@ -301,12 +301,6 @@ def validate_form(request):
   if len([v for v in data.values() if len(v) == 0]) > 0:
     raise Exception('Missing required option')
 
-  data['regression_test'] = request.POST['test_type'] == 'Regression'
-  if data['regression_test']:
-    data['base_tag'] = data['new_tag']
-    data['base_signature'] = data['new_signature']
-    data['base_options'] = data['new_options']
-
   data['auto_purge'] = request.POST.get('auto-purge') is not None
 
   # In case of reschedule use old data, otherwise resolve sha and update user's tests_repo

@@ -395,7 +395,7 @@ def tests_run(request):
   username = authenticated_userid(request)
   u = request.userdb.get_user(username)
 
-  return { 'args': run_args, 'tests_repo': u.get('tests_repo', '') }
+  return { 'args': run_args, 'tests_repo': u.get('tests_repo', ''), 'bench': get_master_bench() }
 
 def can_modify_run(request, run):
   return run['args']['username'] == authenticated_userid(request) or has_permission('approve_run', request.context, request)

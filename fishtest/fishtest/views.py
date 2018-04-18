@@ -210,6 +210,7 @@ def pending(request):
   return { 'users': request.userdb.get_pending(), 'idle': get_idle_users(request) }
 
 @view_config(route_name='drop')
+@view_config(route_name='drop_all')
 def drop(request):
   userid = authenticated_userid(request)
   if not userid:
@@ -222,7 +223,7 @@ def drop(request):
   user = request.matchdict.get('username')
   if not user:
     for u in get_idle_users(request):
-      request.userdb.users.delete({'username': u['username']})
+      request.userdb.users.delete_one({'username': u['username']})
   else:
     request.userdb.users.delete_many({'username': user})
   return HTTPFound(location=request.route_url('pending'))

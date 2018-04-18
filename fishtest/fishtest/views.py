@@ -389,9 +389,6 @@ def tests_run(request):
   if 'id' in request.params:
     run_args = request.rundb.get_run(request.params['id'])['args']
 
-  if not 'base_signature' in run_args:
-    run_args['base_signature'] = get_master_bench()
-
   username = authenticated_userid(request)
   u = request.userdb.get_user(username)
 

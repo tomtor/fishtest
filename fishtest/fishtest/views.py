@@ -79,6 +79,9 @@ def signup(request):
     if not '@' in request.params.get('email', ''):
       request.session.flash('Email required')
       return {}
+    if len(request.params.get('username', '')) == 0:
+      request.session.flash('Username required')
+      return {}
 
     result = request.userdb.create_user(
       username= request.params['username'],
@@ -188,20 +191,22 @@ def actions(request):
 
   return {'actions': actions, 'approver': has_permission('approve_run', request.context, request)}
 
-@view_config(route_name='pending', renderer='pending.mak')
-def pending(request):
-  if not has_permission('approve_run', request.context, request):
-    request.session.flash('You cannot view pending users')
-    return HTTPFound(location=request.route_url('tests'))
-  users = request.userdb.get_pending()
+def get_idle_users(request):
   idle = {}
   for u in request.userdb.get_users():
     idle[u['username']] = u
   for u in request.userdb.user_cache.find():
     del idle[u['username']]
   idle= idle.values()
+  return idle
+   
+@view_config(route_name='pending', renderer='pending.mak')
+def pending(request):
+  if not has_permission('approve_run', request.context, request):
+    request.session.flash('You cannot view pending users')
+    return HTTPFound(location=request.route_url('tests'))
 
-  return { 'users': users, 'idle': idle }
+  return { 'users': request.userdb.get_pending(), 'idle': get_idle_users(request) }
 
 @view_config(route_name='drop')
 def drop(request):
@@ -212,10 +217,13 @@ def drop(request):
   if not has_permission('approve_run', request.context, request):
     request.session.flash('You cannot drop idle users')
     return HTTPFound(location=request.route_url('tests'))
-  
-  request.userdb.users.delete_many({'username': request.matchdict.get('username')})
+  user = request.matchdict.get('username')
+  if not user:
+    for u in get_idle_users(request):
+      request.userdb.users.delete({'username': u['username']})
+  else:
+    request.userdb.users.delete_many({'username': user})
   return HTTPFound(location=request.route_url('pending'))
-
 
 @view_config(route_name='user', renderer='user.mak')
 @view_config(route_name='profile', renderer='user.mak')

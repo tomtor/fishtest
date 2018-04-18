@@ -22,6 +22,10 @@
 
 <h3>Idle Users</h3>
 
+<p>
+<a href="/drop"><button type="submit" class="btn btn-danger">DROP ALL</button</a>
+</p>
+
 <table class="table table-striped table-condensed">
  <thead>
   <tr>

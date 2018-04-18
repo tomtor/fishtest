@@ -200,6 +200,7 @@ def pending(request):
     idle[u['username']] = u
   for u in request.userdb.user_cache.find():
     del idle[u['username']]
+  idle= idle.values()
 
   return { 'users': users, 'idle': idle }
 

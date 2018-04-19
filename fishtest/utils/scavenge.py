@@ -25,7 +25,7 @@ def get_idle_users(days):
   idle = {}
   for u in rundb.userdb.get_users():
       if not 'registration_time' in u \
-         or datetime.strptime(u['registration_time'], '%d-%m-%y %H:%M:%S') < datetime.utcnow() - timedelta(days=days):
+         or u['registration_time'] < datetime.utcnow() - timedelta(days=days):
         idle[u['username']] = u
   for u in rundb.userdb.user_cache.find():
     del idle[u['username']]
@@ -36,11 +36,11 @@ def scavenge_users(scavenge=True, days=7):
     for u in get_idle_users(days):
       print(u['username'])
       if scavenge:
-        rundb.users.delete_one({'username': u['username']})
+        rundb.userdb.users.delete_one({'username': u['username']})
 
 def main():
   scavenge_tasks(scavenge=True)
-  scavenge_users(scavenge=False)
+  scavenge_users(scavenge=True)
 
 if __name__ == '__main__':
   main()

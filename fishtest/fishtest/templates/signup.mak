@@ -33,11 +33,12 @@ If it is not suggested by default you can try right-clicking on the password ent
       <input name="email" type="email" required="required"/>
     </div>
   </div>
+  <div class="g-recaptcha" data-sitekey="6LdAiFQUAAAAANhHq-9aMlFW0xuo-xcI8E3faZAg"></div>
+  <p></p>
   <div class="control-group">
     <div class="controls">
       <button type="submit" name="form.submitted" class="btn btn-primary">Create User</button>
     </div>
   </div>
-  <div class="g-recaptcha" data-sitekey="6LdAiFQUAAAAANhHq-9aMlFW0xuo-xcI8E3faZAg"></div>
 </form>
 </div>

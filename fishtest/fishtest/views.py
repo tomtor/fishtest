@@ -86,7 +86,7 @@ def signup(request):
 
     path = os.path.expanduser('~/fishtest.captcha.secret')
     if os.path.exists(path):
-      with open(os.path.expanduser(path), 'r') as f:
+      with open(path, 'r') as f:
         secret = f.read()
         payload = {'secret': secret, 'response': request.params.get('g-recaptcha-response',''), 'remoteip': request.remote_addr}
         response= requests.post('https://www.google.com/recaptcha/api/siteverify', data=payload).json()

@@ -162,8 +162,11 @@ def parse_tc(tc):
 
 @view_config(route_name='actions', renderer='actions.mak')
 def actions(request):
+  search_action = request.params.get('action', None)
+  search_user = request.params.get('user', None)
+
   actions = []
-  for action in request.actiondb.get_actions(100):
+  for action in request.actiondb.get_actions(1000, action, user):
     item = {
       'action': action['action'],
       'time': action['time'],

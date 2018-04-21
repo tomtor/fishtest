@@ -268,10 +268,11 @@ def users_monthly(request):
   return {'users': users}
 
 def get_master_bench():
+  bs = re.compile('(^|\s)[Bb]ench[ :]+([0-9]{7})', re.MULTILINE)
   for c in requests.get('https://api.github.com/repos/official-stockfish/Stockfish/commits').json():
-    m = re.search('\s*[Bb]ench[ :]+([0-9]{7})', c['commit']['message'])
+    m = bs.search(c['commit']['message'])
     if m:
-      return m.group(1)
+      return m.group(2)
 
 def get_sha(branch, repo_url):
   """Resolves the git branch to sha commit"""
@@ -343,18 +344,33 @@ def validate_form(request):
 
   if len(data['resolved_base']) == 0 or len(data['resolved_new']) == 0:
     raise Exception('Unable to find branch!')
-  
+
+  # Fill new_signature from commit info if left blank
+  if len(data['new_signature']) == 0:
+    found = False
+    api_url = data['tests_repo'].replace('https://github.com', 'https://api.github.com/repos')
+    api_url += ('/commits' + '/' + data['new_tag'])
+    bs = re.compile('(^|\s)[Bb]ench[ :]+([0-9]{7})', re.MULTILINE)
+    for c in requests.get(api_url).json():
+      m = bs.search(c['commit']['message'])
+      if m:
+        found = True
+        break
+    if found:
+      data['new_signature']= m.group(2)
+
   # Check entered bench
   if data['base_tag'] == 'master':
     found = False
     api_url = data['tests_repo'].replace('https://github.com', 'https://api.github.com/repos')
     api_url += '/commits'
+    bs = re.compile('(^|\s)[Bb]ench[ :]+([0-9]{7})', re.MULTILINE)
     for c in requests.get(api_url).json():
-      m = re.search('\s*[Bb]ench[ :]+([0-9]{7})', c['commit']['message'])
+      m = bs.search(c['commit']['message'])
       if m:
         found = True
         break
-    if not found or m.group(1) != data['base_signature']:
+    if not found or m.group(2) != data['base_signature']:
       raise Exception('Bench signature of Base master does not match, please "git pull upstream master" !')
 
   stop_rule = request.POST['stop_rule']

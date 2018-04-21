@@ -16,12 +16,12 @@ class Create10UsersTest(unittest.TestCase):
   def setUp(self):
     rundb= RunDb()
     self.request = testing.DummyRequest(
-            params= {'form.submitted': True, 'username': 'JoeUser',
+            params={'form.submitted': True, 'username': 'JoeUser',
               'password': 'secret', 'password2': 'secret', 'email': 'joe@user.net'},
-            userdb = rundb.userdb
+            userdb=rundb.userdb
             )
 
-    config = testing.setUp(request = self.request)
+    config = testing.setUp(request=self.request)
 
   def tearDown(self):
     testing.tearDown()
@@ -41,11 +41,11 @@ class Create50LoginTest(unittest.TestCase):
 
   def setUp(self):
     rundb= RunDb()
-    self.params= {'form.submitted': True, 'username': 'JoeUser', 'password': 'badsecret'}
+    self.params = {'form.submitted': True, 'username': 'JoeUser', 'password': 'badsecret'}
     self.request = testing.DummyRequest(
-            params= self.params, userdb = rundb.userdb)
+            params=self.params, userdb=rundb.userdb)
 
-    config = testing.setUp(request = self.request)
+    config = testing.setUp(request=self.request)
 
   def tearDown(self):
     testing.tearDown()

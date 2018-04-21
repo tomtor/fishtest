@@ -23,7 +23,7 @@
   <div class="control-group">
     <label class="control-label">Test signature:</label>
     <div class="controls">
-      <input name="test-signature" value="${args.get('new_signature', '')}" ${'readonly' if re_run else ''}>
+      <input name="test-signature" placeholder="Defaults to last commit message" value="${args.get('new_signature', '')}" ${'readonly' if re_run else ''}>
     </div>
   </div>
   <div class="control-group">

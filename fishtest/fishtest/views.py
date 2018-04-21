@@ -323,6 +323,17 @@ def validate_form(request):
     'tests_repo' : request.POST['tests-repo'],
   }
 
+  # Fill new_signature from commit info if left blank
+  if len(data['new_signature']) == 0:
+    found = False
+    api_url = data['tests_repo'].replace('https://github.com', 'https://api.github.com/repos')
+    api_url += ('/commits' + '/' + data['new_tag'])
+    bs = re.compile('(^|\s)[Bb]ench[ :]+([0-9]{7})', re.MULTILINE)
+    c= requests.get(api_url).json()
+    m = bs.search(c['commit']['message'])
+    if m:
+      data['new_signature']= m.group(2)
+
   if len([v for v in data.values() if len(v) == 0]) > 0:
     raise Exception('Missing required option')
 
@@ -344,20 +355,6 @@ def validate_form(request):
 
   if len(data['resolved_base']) == 0 or len(data['resolved_new']) == 0:
     raise Exception('Unable to find branch!')
-
-  # Fill new_signature from commit info if left blank
-  if len(data['new_signature']) == 0:
-    found = False
-    api_url = data['tests_repo'].replace('https://github.com', 'https://api.github.com/repos')
-    api_url += ('/commits' + '/' + data['new_tag'])
-    bs = re.compile('(^|\s)[Bb]ench[ :]+([0-9]{7})', re.MULTILINE)
-    for c in requests.get(api_url).json():
-      m = bs.search(c['commit']['message'])
-      if m:
-        found = True
-        break
-    if found:
-      data['new_signature']= m.group(2)
 
   # Check entered bench
   if data['base_tag'] == 'master':

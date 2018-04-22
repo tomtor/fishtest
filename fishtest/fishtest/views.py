@@ -424,8 +424,7 @@ def tests_modify(request):
     request.actiondb.modify_run(authenticated_userid(request), before, run)
 
     cached_flash(request, 'Run successfully modified!')
-    return HTTPFound(location=request.route_url('tests'))
-  return {}
+  return HTTPFound(location=request.route_url('tests'))
 
 @view_config(route_name='tests_stop', permission='modify_db')
 def tests_stop(request):

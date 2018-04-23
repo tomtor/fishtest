@@ -273,9 +273,12 @@ def users_monthly(request):
 def get_master_bench():
   bs = re.compile('(^|\s)[Bb]ench[ :]+([0-9]{7})', re.MULTILINE)
   for c in requests.get('https://api.github.com/repos/official-stockfish/Stockfish/commits').json():
+    if not 'commit' in c:
+      return None
     m = bs.search(c['commit']['message'])
     if m:
       return m.group(2)
+  return None
 
 def get_user_branch(repo_url):
   """Find branch with last commit"""

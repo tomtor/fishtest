@@ -450,7 +450,7 @@ def tests_run(request):
 
       request.actiondb.new_run(authenticated_userid(request), request.rundb.get_run(run_id))
       cached_flash(request, 'Submitted test to the queue!')
-      return HTTPFound(location=request.route_url('tests/view/' + run_id))
+      return HTTPFound(location='/tests/view/' + str(run_id))
     except Exception as e:
       request.session.flash(str(e))
 

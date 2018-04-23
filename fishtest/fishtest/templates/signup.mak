@@ -1,6 +1,7 @@
 <%inherit file="base.mak"/>
 
 <div>
+<p></p>
 <p>
 Note that many modern browsers can generate/remember a strong password for you.
 </p>

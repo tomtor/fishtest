@@ -277,6 +277,26 @@ def get_master_bench():
     if m:
       return m.group(2)
 
+def get_user_branch(repo_url):
+  """Find branch with last commit"""
+  if repo_url:
+    api_url = repo_url.replace('https://github.com', 'https://api.github.com/repos')
+    owner= repo_url.split('/')[3]
+    acommits = requests.get(api_url + '/commits?author=' + owner).json()
+    if 'message' in acommits:
+      print(acommits.json())
+      return ''
+    """
+    for c in acommits:
+      print(c['commit']['message'])
+      print(c['commit']['author']['date'] + ' ' + c['sha'])
+    """
+    bcommits = requests.get(api_url + '/branches').json()
+    for c in bcommits:
+      if c['commit']['sha'] == acommits[0]['sha']:
+        return c['name']
+  return ''
+
 def get_sha(branch, repo_url):
   """Resolves the git branch to sha commit"""
   api_url = repo_url.replace('https://github.com', 'https://api.github.com/repos')
@@ -324,18 +344,23 @@ def validate_form(request):
     'new_options' : request.POST['new-options'],
     'username' : authenticated_userid(request),
     'tests_repo' : request.POST['tests-repo'],
+    'info' : request.POST['run-info']
   }
 
-  # Fill new_signature from commit info if left blank
-  if len(data['new_signature']) == 0:
-    found = False
+  # Fill new_signature/info from commit info if left blank
+  if len(data['new_signature']) == 0 or len(data['info']) == 0:
     api_url = data['tests_repo'].replace('https://github.com', 'https://api.github.com/repos')
     api_url += ('/commits' + '/' + data['new_tag'])
-    bs = re.compile('(^|\s)[Bb]ench[ :]+([0-9]{7})', re.MULTILINE)
     c= requests.get(api_url).json()
-    m = bs.search(c['commit']['message'])
-    if m:
-      data['new_signature']= m.group(2)
+    if not 'commit' in c:
+      raise Exception('Cannot find branch in developer repository')
+    if len(data['new_signature']) == 0:
+      bs = re.compile('(^|\s)[Bb]ench[ :]+([0-9]{7})', re.MULTILINE)
+      m = bs.search(c['commit']['message'])
+      if m:
+        data['new_signature']= m.group(2)
+    if len(data['info']) == 0:
+        data['info'] = ('STC: ' if re.match(data[tc], '[12][0-9]^[0-9]') else 'LTC: ') + c['commit']['message']
 
   if len([v for v in data.values() if len(v) == 0]) > 0:
     raise Exception('Missing required option')
@@ -413,9 +438,6 @@ def validate_form(request):
 
   if data['threads'] <= 0:
     raise Exception('Threads must be >= 1')
-
-  # Optional
-  data['info'] = request.POST['run-info']
 
   return data
 

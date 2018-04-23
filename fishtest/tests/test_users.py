@@ -76,17 +76,17 @@ class Create90APITest(unittest.TestCase):
     global rundb
     rundb= RunDb()
     run_id = rundb.new_run('master', 'master', 100000, '100+0.01', 'book', 10, 1, '', '',
-                           username='travis', tests_repo='travis', start_time= datetime.datetime.utcnow())
+                           username='travis', tests_repo='travis', start_time=datetime.datetime.utcnow())
     json_params= {'username': 'JoeUser', 'password': 'secret', 'run_id': run_id, 'message': 'travis'}
     self.request = testing.DummyRequest(
-            json_body= json_params,
+            json_body=json_params,
             method='POST',
-            rundb = rundb,
-            userdb = rundb.userdb,
-            actiondb = rundb.actiondb
+            rundb=rundb,
+            userdb=rundb.userdb,
+            actiondb=rundb.actiondb
             )
 
-    config = testing.setUp(request = self.request)
+    config = testing.setUp(request=self.request)
 
   def tearDown(self):
     self.request.userdb.users.delete_many({'username': 'JoeUser'})

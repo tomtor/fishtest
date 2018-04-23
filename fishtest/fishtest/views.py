@@ -66,7 +66,7 @@ def logout(request):
   session = request.session
   headers = forget(request)
   session.invalidate()
-  return HTTPFound(location= request.route_url('tests'), headers= headers)
+  return HTTPFound(location=request.route_url('tests'), headers=headers)
 
 @view_config(route_name='signup', renderer='signup.mak')
 def signup(request):
@@ -97,9 +97,9 @@ def signup(request):
           return {}
 
     result = request.userdb.create_user(
-      username= request.params['username'],
-      password= request.params['password'],
-      email= request.params['email']
+      username=request.params['username'],
+      password=request.params['password'],
+      email=request.params['email']
     )
 
     if not result:
@@ -166,7 +166,7 @@ def actions(request):
   search_user = request.params.get('user', '')
 
   actions = []
-  for action in request.actiondb.get_actions(1000, search_action, search_user):
+  for action in request.actiondb.get_actions(100, search_action, search_user):
     item = {
       'action': action['action'],
       'time': action['time'],

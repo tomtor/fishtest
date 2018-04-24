@@ -280,26 +280,6 @@ def get_master_bench():
       return m.group(2)
   return None
 
-def get_user_branch(repo_url):
-  """Find branch with last commit"""
-  if repo_url:
-    api_url = repo_url.replace('https://github.com', 'https://api.github.com/repos')
-    owner= repo_url.split('/')[3]
-    acommits = requests.get(api_url + '/commits?author=' + owner).json()
-    if 'message' in acommits:
-      print(acommits.json())
-      return ''
-    """
-    for c in acommits:
-      print(c['commit']['message'])
-      print(c['commit']['author']['date'] + ' ' + c['sha'])
-    """
-    bcommits = requests.get(api_url + '/branches').json()
-    for c in bcommits:
-      if c['commit']['sha'] == acommits[0]['sha']:
-        return c['name']
-  return ''
-
 def get_sha(branch, repo_url):
   """Resolves the git branch to sha commit"""
   api_url = repo_url.replace('https://github.com', 'https://api.github.com/repos')

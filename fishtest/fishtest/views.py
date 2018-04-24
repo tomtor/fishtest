@@ -331,7 +331,7 @@ def validate_form(request):
   }
 
   def strip_message(m):
-    s = re.sub("[Bb]ench[ :]+[0-9]{7}", "", m)
+    s = re.sub("[Bb]ench[ :]+[0-9]{7}\s*", "", m)
     s = re.sub("[ \t]+", " ", s)
     s = re.sub("\n+", "\n", s)
     return s.rstrip()

@@ -402,9 +402,7 @@ class RunDb:
         self.stop_run(run_id, run)
         flush = True
 
-    if (   not 'spsa' in run['args'] or spsa_games == spsa['num_games']
-        or num_games >= task['num_games'] or len(spsa['w_params']) < 20):
-      self.buffer(run, flush)
+    self.buffer(run, flush)
 
     return {'task_alive': task['active']}
 

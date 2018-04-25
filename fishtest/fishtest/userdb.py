@@ -35,8 +35,8 @@ class UserDb:
   
   def get_pending(self):
     if time.time() > self.last_pending_time + 60:
-      self.last_pending_time = time.time()
       self.last_pending = list(self.users.find({'blocked': True}, sort=[('_id', ASCENDING)]))
+      self.last_pending_time = time.time()
     return self.last_pending
 
   def get_user(self, username):

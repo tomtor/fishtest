@@ -40,8 +40,6 @@ class UserDb:
     with self.pending_lock:
       if time.time() > self.last_pending_time + 60:
         self.last_pending = list(self.users.find({'blocked': True}, sort=[('_id', ASCENDING)]))
-        if self.last_pending is None:
-          self.last_pending = []
         self.last_pending_time = time.time()
       return self.last_pending
 

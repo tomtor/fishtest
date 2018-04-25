@@ -37,9 +37,7 @@ def scavenge_users(scavenge=True, days=28):
     for u in get_idle_users(days):
       print(u['username'])
       if scavenge:
-        #rundb.userdb.users.delete_one({'username': u['username']})
-        user = rundb.userdb.users.find_one({'username': u['username']})
-        rundb.userdb.users.remove({'_id': u['_id']}
+        rundb.userdb.users.remove({'_id': u['_id']})
 
 def main():
   scavenge_tasks(scavenge=True)

@@ -557,22 +557,6 @@ class RunDb:
 
     spsa['iter'] += int(spsa_results['num_games'] / 2)
 
-    # Update the current theta based on the results from the worker
-    # Worker wins/losses are always in terms of w_params
-    result = spsa_results['wins'] - spsa_results['losses']
-    summary = []
-    w_params = self.get_params(run['_id'], worker)
-    for idx, param in enumerate(spsa['params']):
-      R = w_params[idx]['R']
-      c = w_params[idx]['c']
-      flip = w_params[idx]['flip']
-      param['theta'] = self.spsa_param_clip_round(param, R * c * result * flip, spsa['clipping'], 'deterministic')
-      summary.append({
-        'theta': param['theta'],
-        'R': R,
-        'c': c,
-      })
-
     # Store the history every 'freq' iterations.
     # More tuned parameters result in a lower update frequency,
     # so that the required storage (performance) remains constant.
@@ -589,12 +573,13 @@ class RunDb:
     # Worker wins/losses are always in terms of w_params
     result = spsa_results['wins'] - spsa_results['losses']
     summary = []
-    w_params = self.get_params(str(run['_id']), worker)
+    w_params = self.get_params(run['_id'], worker)
     for idx, param in enumerate(spsa['params']):
       R = w_params[idx]['R']
       c = w_params[idx]['c']
       flip = w_params[idx]['flip']
       param['theta'] = self.spsa_param_clip_round(param, R * c * result * flip, spsa['clipping'], 'deterministic')
+
       if grow_summary:
         summary.append({
           'theta': param['theta'],

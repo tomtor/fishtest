@@ -495,7 +495,9 @@ class RunDb:
 
   def get_params(self, run_id, worker):
     run_id = str(run_id)
-    # Should never fail:
+    if not run_id in self.spsa_params:
+      # Should only happen after server restart
+      return self.generate_spsa(worker, self.get_run(run_id))
     return self.spsa_params[run_id][worker]
 
   def clear_params(self, run_id):
@@ -512,6 +514,9 @@ class RunDb:
     if not task['active'] or not task['pending']:
       return {'task_alive': False}
 
+    return self.generate_spsa(worker, run)
+
+  def generate_spsa(self, worker, run):
     result = {
       'task_alive': True,
       'w_params': [],
@@ -543,7 +548,7 @@ class RunDb:
         'value': self.spsa_param_clip_round(param, -c * flip, spsa['clipping'], spsa['rounding']),
       })
 
-    self.store_params(run_id, worker, result['w_params'])
+    self.store_params(run['_id'], worker, result['w_params'])
     return result
 
   def update_spsa(self, worker, run, spsa_results):

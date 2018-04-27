@@ -482,21 +482,26 @@ class RunDb:
 
     return value
   
-  # Store SPRT parameters for each worker
-  sprt_params = {}
+  # Store SPSA parameters for each worker
+  spsa_params = {}
   
   def store_params(self, run_id, worker, params):
-    if not run_id in self.sprt_params:
-      self.sprt_params[run_id] = {}
-    self.sprt_params[run_id][worker] = params
+    run_id = str(run_id)
+    if not run_id in self.spsa_params:
+      self.spsa_params[run_id] = {}
+    self.spsa_params[run_id][worker] = params
 
   def get_params(self, run_id, worker):
-    # Should never fail:
-    return self.sprt_params[run_id][worker]
+    run_id = str(run_id)
+    if not run_id in self.spsa_params:
+      # Should only happen after server restart
+      return self.generate_spsa(worker, self.get_run(run_id))['w_params']
+    return self.spsa_params[run_id][worker]
 
   def clear_params(self, run_id):
-    if run_id in self.sprt_params:
-      del self.sprt_params[run_id]
+    run_id = str(run_id)
+    if run_id in self.spsa_params:
+      del self.spsa_params[run_id]
 
   def request_spsa(self, worker, run_id, task_id):
     run = self.get_run(run_id)
@@ -507,6 +512,11 @@ class RunDb:
     if not task['active'] or not task['pending']:
       return {'task_alive': False}
 
+    result = self.generate_spsa(worker, run)
+    self.store_params(run['_id'], worker, result['w_params'])
+    return result
+
+  def generate_spsa(self, worker, run):
     result = {
       'task_alive': True,
       'w_params': [],
@@ -538,7 +548,6 @@ class RunDb:
         'value': self.spsa_param_clip_round(param, -c * flip, spsa['clipping'], spsa['rounding']),
       })
 
-    self.store_params(run_id, worker, result['w_params'])
     return result
 
   def update_spsa(self, worker, run, spsa_results):
@@ -547,6 +556,22 @@ class RunDb:
         spsa['clipping'] = 'old'
 
     spsa['iter'] += int(spsa_results['num_games'] / 2)
+
+    # Update the current theta based on the results from the worker
+    # Worker wins/losses are always in terms of w_params
+    result = spsa_results['wins'] - spsa_results['losses']
+    summary = []
+    w_params = self.get_params(run['_id'], worker)
+    for idx, param in enumerate(spsa['params']):
+      R = w_params[idx]['R']
+      c = w_params[idx]['c']
+      flip = w_params[idx]['flip']
+      param['theta'] = self.spsa_param_clip_round(param, R * c * result * flip, spsa['clipping'], 'deterministic')
+      summary.append({
+        'theta': param['theta'],
+        'R': R,
+        'c': c,
+      })
 
     # Store the history every 'freq' iterations.
     # More tuned parameters result in a lower update frequency,

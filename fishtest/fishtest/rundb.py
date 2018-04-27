@@ -579,7 +579,6 @@ class RunDb:
       c = w_params[idx]['c']
       flip = w_params[idx]['flip']
       param['theta'] = self.spsa_param_clip_round(param, R * c * result * flip, spsa['clipping'], 'deterministic')
-
       if grow_summary:
         summary.append({
           'theta': param['theta'],

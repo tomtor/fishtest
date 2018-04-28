@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import datetime
 import json
 import os
+import glob
 import stat
 import random
 import subprocess
@@ -39,21 +40,20 @@ def is_64bit():
     return is_windows_64bit()
   return '64' in platform.architecture()[0]
 
-HTTP_TIMEOUT = 5.0
+HTTP_TIMEOUT = 15.0
 
 FISHCOOKING_URL = 'https://github.com/mcostalba/FishCooking'
 ARCH = 'ARCH=x86-64-modern' if is_64bit() else 'ARCH=x86-32'
 EXE_SUFFIX = ''
-MAKE_CMD = 'make profile-build COMP=gcc ' + ARCH
+MAKE_CMD = 'make COMP=gcc ' + ARCH
 
 if IS_WINDOWS:
   EXE_SUFFIX = '.exe'
-  MAKE_CMD = 'make profile-build COMP=mingw ' + ARCH
+  MAKE_CMD = 'make COMP=mingw ' + ARCH
 
-def binary_filename(sha):
-  system = platform.uname()[0].lower()
-  architecture = '64' if is_64bit() else '32'
-  return sha + '_' + system + '_' + architecture
+def printout(s):
+  print s
+  sys.stdout.flush()
 
 def github_api(repo):
   """ Convert from https://github.com/<user>/<repo>
@@ -68,7 +68,7 @@ def verify_signature(engine, signature, remote, payload, concurrency):
 
   try:
     bench_sig = ''
-    print 'Verifying signature of %s ...' % (os.path.basename(engine))
+    printout('Verifying signature of %s ...' % (os.path.basename(engine)))
     with open(os.devnull, 'wb') as f:
       p = subprocess.Popen([engine, 'bench'], stderr=subprocess.PIPE, stdout=f, universal_newlines=True)
     for line in iter(p.stderr.readline,''):
@@ -93,13 +93,32 @@ def verify_signature(engine, signature, remote, payload, concurrency):
 
   return bench_nps
 
+def cleanup(item, testing_dir):
+  """Remove corrupted opening books"""
+  target_path = os.path.join(testing_dir, item)
+  if os.path.exists(target_path):
+    stat_info = os.stat(target_path)
+  else:
+    return True
+  if stat_info.st_size == 0:
+    os.remove(target_path)
+    return False
+  else:
+    return True
+
 def setup(item, testing_dir):
   """Download item from FishCooking to testing_dir"""
   tree = requests.get(github_api(FISHCOOKING_URL) + '/git/trees/setup', timeout=HTTP_TIMEOUT).json()
   for blob in tree['tree']:
     if blob['path'] == item:
-      print 'Downloading %s ...' % (item)
+      printout('Downloading %s ...' % (item))
       blob_json = requests.get(blob['url'], timeout=HTTP_TIMEOUT).json()
+      while not cleanup(item, testing_dir):
+        blob_request = requests.get(blob['url'], timeout=HTTP_TIMEOUT)
+        blob_json = blob_request.json()
+        if blob_request.status_code == requests.codes.ok:
+          break
+        sleep(5)
       with open(os.path.join(testing_dir, item), 'wb+') as f:
         f.write(b64decode(blob_json['content']))
       break
@@ -110,31 +129,40 @@ def setup_engine(destination, worker_dir, sha, repo_url, concurrency):
   if os.path.exists(destination): os.remove(destination)
   """Download and build sources in a temporary directory then move exe to destination"""
   tmp_dir = tempfile.mkdtemp()
-  os.chdir(tmp_dir)
+  
+  try:
+    os.chdir(tmp_dir)
+    with open('sf.gz', 'wb+') as f:
+      f.write(requests.get(github_api(repo_url) + '/zipball/' + sha, timeout=HTTP_TIMEOUT).content)
+    zip_file = ZipFile('sf.gz')
+    zip_file.extractall()
+    zip_file.close()
 
-  with open('sf.gz', 'wb+') as f:
-    f.write(requests.get(github_api(repo_url) + '/zipball/' + sha, timeout=HTTP_TIMEOUT).content)
-  zip_file = ZipFile('sf.gz')
-  zip_file.extractall()
-  zip_file.close()
+    for name in zip_file.namelist():
+      if name.endswith('/src/'):
+        src_dir = name
+    os.chdir(src_dir)
 
-  for name in zip_file.namelist():
-    if name.endswith('/src/'):
-      src_dir = name
-  os.chdir(src_dir)
-
-  custom_make = os.path.join(worker_dir, 'custom_make.txt')
-  if os.path.exists(custom_make):
-    with open(custom_make, 'r') as m:
-      make_cmd = m.read().strip()
-    subprocess.check_call(make_cmd, shell=True)
-  else:
-    subprocess.check_call(MAKE_CMD + ' -j %s' % (concurrency), shell=True)
-
-  shutil.move('stockfish'+ EXE_SUFFIX, destination)
-  os.chdir(worker_dir)
-  shutil.rmtree(tmp_dir)
-
+    custom_make = os.path.join(worker_dir, 'custom_make.txt')
+    if os.path.exists(custom_make):
+      with open(custom_make, 'r') as m:
+        make_cmd = m.read().strip()
+      subprocess.check_call(make_cmd, shell=True)
+    else:
+      subprocess.check_call(MAKE_CMD + ' -j %s' % (concurrency) + ' profile-build', shell=True)
+      try: # try/pass needed for backwards compatibility with older stockfish, where 'make strip' fails under mingw.
+        subprocess.check_call(MAKE_CMD + ' -j %s' % (concurrency) + ' strip', shell=True)
+      except:
+        pass
+      
+      
+    shutil.move('stockfish'+ EXE_SUFFIX, destination)
+  except:
+    raise Exception('Failed to setup engine for %s' % (sha))
+  finally:
+    os.chdir(worker_dir)
+    shutil.rmtree(tmp_dir)
+    
 def kill_process(p):
   if IS_WINDOWS:
     # Kill doesn't kill subprocesses on Windows
@@ -176,7 +204,7 @@ def adjust_tc(tc, base_nps, concurrency):
     scaled_tc = '%d/%s' % (num_moves, scaled_tc)
     tc_limit *= 100.0 / num_moves
 
-  print 'CPU factor : %f - tc adjusted to %s' % (factor, scaled_tc)
+  printout('CPU factor : %f - tc adjusted to %s' % (factor, scaled_tc))
   return scaled_tc, tc_limit
 
 def enqueue_output(out, queue):
@@ -197,7 +225,7 @@ def run_game(p, remote, result, spsa, spsa_tuning, tc_limit):
   t.start()
 
   end_time = datetime.datetime.now() + datetime.timedelta(seconds=tc_limit)
-  print('TC limit', tc_limit, 'End time:', end_time)
+  printout('TC limit '+str(tc_limit)+' End time: '+str(end_time))
 
   while datetime.datetime.now() < end_time:
     try: line = q.get_nowait()
@@ -212,7 +240,7 @@ def run_game(p, remote, result, spsa, spsa_tuning, tc_limit):
 
     # Have we reached the end of the match?  Then just exit
     if 'Finished match' in line:
-      print('Finished match cleanly')
+      printout('Finished match cleanly')
       kill_process(p)
       break
 
@@ -240,12 +268,14 @@ def run_game(p, remote, result, spsa, spsa_tuning, tc_limit):
         spsa['draws'] = wld[2]
 
       try:
+        t0 = datetime.datetime.utcnow()
         req = requests.post(remote + '/api/update_task', data=json.dumps(result), headers={'Content-type': 'application/json'}, timeout=HTTP_TIMEOUT).json()
         failed_updates = 0
+        printout("Task updated successfully in "+str((datetime.datetime.utcnow()-t0).total_seconds())+"s")
 
         if not req['task_alive']:
           # This task is no longer neccesary
-          print('Server told us task is no longer needed')
+          printout('Server told us task is no longer needed')
           kill_process(p)
           return req
 
@@ -254,13 +284,13 @@ def run_game(p, remote, result, spsa, spsa_tuning, tc_limit):
         traceback.print_exc(file=sys.stderr)
         failed_updates += 1
         if failed_updates > 5:
-          print('Too many failed update attempts')
+          printout('Too many failed update attempts')
           kill_process(p)
           break
         time.sleep(random.randint(failed_updates*failed_updates, 4 * failed_updates*failed_updates))
 
   if datetime.datetime.now() >= end_time:
-    print(datetime.datetime.now(), 'is past end time', end_time)
+    printout(datetime.datetime.now()+' is past end time '+end_time)
     kill_process(p)
 
   return { 'task_alive': True }
@@ -291,7 +321,7 @@ def launch_cutechess(cmd, remote, result, spsa_tuning, games_to_play, tc_limit):
   idx = cmd.index('_spsa_')
   cmd = cmd[:idx] + ['option.%s=%d'%(x['name'], round(x['value'])) for x in b_params] + cmd[idx+1:]
 
-  print cmd
+  printout(cmd)
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True, bufsize=1, close_fds=not IS_WINDOWS)
 
   try:
@@ -299,7 +329,7 @@ def launch_cutechess(cmd, remote, result, spsa_tuning, games_to_play, tc_limit):
   except:
     traceback.print_exc(file=sys.stderr)
     try:
-      print('Exception running games')
+      printout('Exception running games')
       kill_process(p)
     except:
       pass
@@ -357,25 +387,28 @@ def run_games(worker_info, password, remote, run, task_id):
   if not os.path.exists(testing_dir):
     os.makedirs(testing_dir)
 
-  new_engine = os.path.join(testing_dir, 'stockfish' + EXE_SUFFIX)
-  base_engine = os.path.join(testing_dir, 'base' + EXE_SUFFIX)
+  # clean up old engines (keeping the 25 most recent)
+  engines = glob.glob(os.path.join(testing_dir, 'stockfish_*' + EXE_SUFFIX))
+  if len(engines) > 25:
+    engines.sort(key=os.path.getmtime)
+    for old_engine in engines[:len(engines)-25]:
+      os.remove(old_engine)
+
+  # create new engines
+  sha_new = run['args']['resolved_new']
+  sha_base = run['args']['resolved_base']
+  new_engine_name = 'stockfish_' + sha_new
+  base_engine_name = 'stockfish_' + sha_base
+
+  new_engine = os.path.join(testing_dir, new_engine_name + EXE_SUFFIX)
+  base_engine = os.path.join(testing_dir, base_engine_name + EXE_SUFFIX)
   cutechess = os.path.join(testing_dir, 'cutechess-cli' + EXE_SUFFIX)
 
-  # We have already run another task from the same run ?
-  run_id_file = os.path.join(testing_dir, 'run_id.txt')
-  if os.path.exists(run_id_file):
-    with open(run_id_file, 'r') as f:
-      run_id = f.read().strip()
-  else:
-    run_id = ''
-
-  # Build from sources new and base engines
-  if str(run['_id']) != run_id:
-    if os.path.exists(run_id_file): os.remove(run_id_file)
-    setup_engine(new_engine, worker_dir, run['args']['resolved_new'], repo_url, worker_info['concurrency'])
-    setup_engine(base_engine, worker_dir, run['args']['resolved_base'], repo_url, worker_info['concurrency'])
-    with open(run_id_file, 'w') as f:
-      f.write(str(run['_id']))
+  # Build from sources new and base engines as needed
+  if not os.path.exists(new_engine):
+    setup_engine(new_engine, worker_dir, sha_new, repo_url, worker_info['concurrency'])
+  if not os.path.exists(base_engine):
+    setup_engine(base_engine, worker_dir, sha_base, repo_url, worker_info['concurrency'])
 
   os.chdir(testing_dir)
 
@@ -416,7 +449,7 @@ def run_games(worker_info, password, remote, run, task_id):
   else:
     book_cmd = ['book=%s' % (book), 'bookdepth=%s' % (book_depth)]
 
-  print 'Running %s vs %s' % (run['args']['new_tag'], run['args']['base_tag'])
+  printout('Running %s vs %s' % (run['args']['new_tag'], run['args']['base_tag']))
 
   if spsa_tuning:
     games_to_play = games_concurrency * 2
@@ -441,8 +474,8 @@ def run_games(worker_info, password, remote, run, task_id):
           ['-srand', "%d" % struct.unpack("<L", os.urandom(struct.calcsize("<L")))] + \
           ['-resign', 'movecount=3', 'score=400', '-draw', 'movenumber=34',
            'movecount=8', 'score=20', '-concurrency', str(games_concurrency)] + pgn_cmd + \
-          ['-engine', 'name=stockfish', 'cmd=stockfish'] + new_options + ['_spsa_'] + \
-          ['-engine', 'name=base', 'cmd=base'] + base_options + ['_spsa_'] + \
+          ['-engine', 'name=stockfish', 'cmd=%s' % (new_engine_name)] + new_options + ['_spsa_'] + \
+          ['-engine', 'name=base', 'cmd=%s' % (base_engine_name)] + base_options + ['_spsa_'] + \
           ['-each', 'proto=uci', 'tc=%s' % (scaled_tc)] + nodestime_cmd + threads_cmd + book_cmd
 
     task_status = launch_cutechess(cmd, remote, result, spsa_tuning, games_to_play, tc_limit * games_to_play / min(games_to_play, games_concurrency))

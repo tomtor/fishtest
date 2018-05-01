@@ -18,7 +18,7 @@ from pyramid.security import remember, forget, authenticated_userid, has_permiss
 from pyramid.view import view_config, forbidden_view_config
 from pyramid.httpexceptions import HTTPFound, HTTPBadRequest
 
-import stat_util
+import fishtest.stat_util
 
 # For caching the tests output
 cache_time = 2
@@ -217,7 +217,7 @@ def get_idle_users(request):
     idle[u['username']] = u
   for u in request.userdb.user_cache.find():
     del idle[u['username']]
-  idle= idle.values()
+  idle= list(idle.values())
   return idle
 
 @view_config(route_name='pending', renderer='pending.mak')
@@ -354,7 +354,7 @@ def validate_form(request):
         data['info'] = ('' if re.match('^[012]?[0-9][^0-9].*', data['tc']) else 'LTC: ') \
           + strip_message(c['commit']['message'])
 
-  if len([v for v in data.values() if len(v) == 0]) > 0:
+  if len([v for v in list(data.values()) if len(v) == 0]) > 0:
     raise Exception('Missing required option')
 
   data['auto_purge'] = request.POST.get('auto-purge') is not None
@@ -622,7 +622,7 @@ def format_results(run_results, run):
     sprt = run['args']['sprt']
     state = sprt.get('state', '')
 
-    stats = stat_util.SPRT(run_results,
+    stats = fishtest.stat_util.SPRT(run_results,
                            elo0=sprt['elo0'],
                            alpha=sprt['alpha'],
                            elo1=sprt['elo1'],
@@ -631,7 +631,7 @@ def format_results(run_results, run):
     result['llr'] = stats['llr']
     result['info'].append('LLR: %.2f (%.2lf,%.2lf) [%.2f,%.2f]' % (stats['llr'], stats['lower_bound'], stats['upper_bound'], sprt['elo0'], sprt['elo1']))
   else:
-    elo, elo95, los = stat_util.get_elo(WLD)
+    elo, elo95, los = fishtest.stat_util.get_elo(WLD)
 
     # Display the results
     eloInfo = 'ELO: %.2f +-%.1f (95%%)' % (elo, elo95)
@@ -705,7 +705,7 @@ def get_chi2(tasks, bad_users):
   if len(users) == 0:
     return results
 
-  observed = numpy.array(users.values())
+  observed = numpy.array(list(users.values()))
   rows,columns = observed.shape
   df = (rows - 1) * (columns - 1)
   column_sums = numpy.sum(observed, axis=0)
@@ -719,7 +719,7 @@ def get_chi2(tasks, bad_users):
   adj = numpy.outer((1 - row_sums / grand_total), (1 - column_sums / grand_total))
   residual = diff / numpy.sqrt(expected * adj)
   for idx in range(len(users)):
-    users[users.keys()[idx]] = numpy.max(numpy.abs(residual[idx]))
+    users[list(users)[idx]] = numpy.max(numpy.abs(residual[idx]))
   chi2 = numpy.sum(diff * diff / expected)
   return {
     'chi2': chi2,

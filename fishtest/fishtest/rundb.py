@@ -292,16 +292,18 @@ class RunDb:
     run_found = False
     for runt in self.task_runs:
       run = self.get_run(runt['_id'])
-      if run['_id'] not in exclusion_list and run['approved']:
+      if run['_id'] not in exclusion_list and run['approved'] and run['args']['threads'] <= max_threads:
         task_id = -1
         for task in run['tasks']:
           task_id = task_id + 1
-          if not task['active'] and task['pending'] and run['args']['threads'] <= max_threads:
-            task['worker_info'] = worker_info
-            task['last_updated'] = datetime.utcnow()
-            task['active'] = True
-            run_found = True
-            break
+          if not task['active'] and task['pending']:
+            with self.active_run_lock(str(run['_id'])): # retest condition with lock
+              if not task['active'] and task['pending']:
+                task['worker_info'] = worker_info
+                task['last_updated'] = datetime.utcnow()
+                task['active'] = True
+                run_found = True
+                break
       if run_found:
         break
 

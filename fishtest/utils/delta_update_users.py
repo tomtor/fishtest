@@ -92,6 +92,17 @@ def update_users():
 
   # record this update run
   rundb.actiondb.update_stats()
+  
+  # Race condition at this spot:
+  #
+  # If a run completes when flow control is here
+  # then that run might be counted twice. This window is small (eg < 50 ms)
+  # and fixing it would make the code more complex and somewhat slower.
+  # We would also have to store additional info in completed runs.
+  # I expect the totals to be >99% accurate, and probably much better.
+  # If we really need correct totals then the original update_users.py
+  # could be run on occasion.
+  
   while True:
     runs = rundb.get_finished_runs(skip=current, limit=step_size)[0]
     if len(runs) == 0:

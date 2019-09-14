@@ -11,8 +11,9 @@ from datetime import datetime, timedelta
 from bson.objectid import ObjectId
 from bson.binary import Binary
 from pymongo import MongoClient, ASCENDING, DESCENDING
-from userdb import UserDb
-from actiondb import ActionDb
+
+from fishtest.userdb import UserDb
+from fishtest.actiondb import ActionDb
 
 import fishtest.stat_util
 
@@ -183,7 +184,7 @@ class RunDb:
       now = time.time()
       old = now + 1
       oldest = None
-      for id in self.run_cache.keys():
+      for id in list(self.run_cache):
         if not self.run_cache[id]['dirty']:
           if self.run_cache[id]['rtime'] < now - 60:
             del self.run_cache[id]
@@ -376,7 +377,7 @@ class RunDb:
       self.purge_count = self.purge_count + 1
       if self.purge_count > 100000:
         old = time.time() - 10000
-        self.active_runs = dict((k,v) for k, v in self.active_runs.iteritems() if v['time'] >= old)
+        self.active_runs = dict((k,v) for k, v in self.active_runs.items() if v['time'] >= old)
         self.purge_count = 0
       if id in self.active_runs:
         active_lock = self.active_runs[id]['lock']

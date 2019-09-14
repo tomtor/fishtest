@@ -1,5 +1,9 @@
 #!/usr/bin/python
-import os, sys
+
+from __future__ import print_function
+
+import os
+import sys
 from datetime import datetime, timedelta
 
 # For tasks
@@ -14,7 +18,7 @@ def scavenge_tasks(scavenge=True, minutes=60):
     changed = False
     for idx, task in enumerate(run['tasks']):
       if task['active'] and task['last_updated'] < datetime.utcnow() - timedelta(minutes=minutes):
-        print 'Scavenging', task
+        print('Scavenging', task)
         task['active'] = False
         changed = True
     if changed and scavenge:
@@ -24,7 +28,7 @@ def get_idle_users(days):
   """Check for users that have never been active"""
   idle = {}
   for u in rundb.userdb.get_users():
-      if not 'registration_time' in u \
+      if 'registration_time' not in u \
          or u['registration_time'] < datetime.utcnow() - timedelta(days=days):
         idle[u['username']] = u
   for u in rundb.userdb.user_cache.find():

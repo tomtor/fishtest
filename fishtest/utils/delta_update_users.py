@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os
 import sys
+import fcntl
 
 from datetime import datetime, timedelta
 
@@ -12,6 +13,8 @@ from fishtest.views import parse_tc, delta_date
 def process_run(run, info, last_process_date=None):
   if 'deleted' in run:
     return
+  if last_process_date and run['last_updated'] < last_process_date:
+    return
   if 'username' in run['args']:
     username = run['args']['username']
     info[username]['tests'] += 1
@@ -19,8 +22,6 @@ def process_run(run, info, last_process_date=None):
   tc = parse_tc(run['args']['tc'])
   for task in run['tasks']:
     if 'worker_info' not in task:
-      continue
-    if last_process_date and task['last_updated'] < last_process_date:
       continue
     username = task['worker_info'].get('username', None)
     if username == None:
@@ -65,9 +66,12 @@ def update_users():
 
   last_stats = datetime.min
   clear_stats = True
-  for stat in rundb.actiondb.get_actions(1, 'update_stats'):
-    last_stats = stat['time']
-    clear_stats = False
+  if len(sys.argv) > 1:
+    print('scan all')
+  else:
+    for stat in rundb.actiondb.get_actions(1, 'update_stats'):
+      last_stats = stat['time']
+      clear_stats = False
   print('last: ' + str(last_stats))
 
   for u in rundb.userdb.get_users():
@@ -92,24 +96,17 @@ def update_users():
   step_size = 100
   now = datetime.utcnow()
 
+  # prevent race condition with 'stop_run' in server
+  fcntl.flock(RunDb.lock_file, fcntl.LOCK_EX)
   # record this update run
   rundb.actiondb.update_stats()
-
-  # Race condition at this spot:
-  #
-  # If a run completes when flow control is here
-  # then that run might be counted twice. This window is small (eg < 50 ms)
-  # and fixing it would make the code more complex and somewhat slower.
-  # We would also have to store additional info in completed runs.
-  # I expect the totals to be >99% accurate, and probably much better.
-  # If we really need correct totals then the original update_users.py
-  # could be run on occasion.
 
   more_days = True
   first = True
   while more_days:
     runs = rundb.get_finished_runs(skip=current, limit=step_size)[0]
     if first:
+      fcntl.flock(RunDb.lock_file, fcntl.LOCK_UN)
       first = False
       print('race window: ' + str(datetime.utcnow() - now))
     if len(runs) == 0:

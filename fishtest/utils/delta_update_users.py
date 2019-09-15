@@ -63,9 +63,12 @@ def update_users():
 
   last_stats = datetime.min
   clear_stats = True
-  for stat in rundb.actiondb.get_actions(1, 'update_stats'):
-    last_stats = stat['time']
-    clear_stats = False
+  if len(sys.argv) > 1:
+    print('scan all')
+  else:
+    for stat in rundb.actiondb.get_actions(1, 'update_stats'):
+      last_stats = stat['time']
+      clear_stats = False
   print('last: ' + str(last_stats))
 
   for u in rundb.userdb.get_users():
@@ -92,7 +95,7 @@ def update_users():
 
   # record this update run
   rundb.actiondb.update_stats()
-  
+
   # Race condition at this spot:
   #
   # If a run completes when flow control is here
@@ -102,7 +105,7 @@ def update_users():
   # I expect the totals to be >99% accurate, and probably much better.
   # If we really need correct totals then the original update_users.py
   # could be run on occasion.
-  
+
   while True:
     runs = rundb.get_finished_runs(skip=current, limit=step_size)[0]
     if len(runs) == 0:

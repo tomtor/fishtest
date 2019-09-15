@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import os, sys
+import os
+import sys
+
 from datetime import datetime, timedelta
 
 # For tasks
@@ -106,8 +108,13 @@ def update_users():
   # If we really need correct totals then the original update_users.py
   # could be run on occasion.
 
-  while True:
+  more_days = True
+  first = True
+  while more_days:
     runs = rundb.get_finished_runs(skip=current, limit=step_size)[0]
+    if first:
+      first = False
+      print('race window: ' + str(datetime.utcnow() - now))
     if len(runs) == 0:
       break
     for run in runs:
@@ -115,7 +122,7 @@ def update_users():
       if (now - run['start_time']).days < 31:
         process_run(run, top_month)
       elif not clear_stats:
-        break
+        more_days = False
     current += step_size
 
   machines = rundb.get_machines()

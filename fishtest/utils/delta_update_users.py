@@ -10,6 +10,8 @@ from fishtest.views import parse_tc, delta_date
 def process_run(run, info, last_process_date=None):
   if 'deleted' in run:
     return
+  if last_process_date and run['last_updated'] < last_process_date:
+    return
   if 'username' in run['args']:
     username = run['args']['username']
     info[username]['tests'] += 1
@@ -17,8 +19,6 @@ def process_run(run, info, last_process_date=None):
   tc = parse_tc(run['args']['tc'])
   for task in run['tasks']:
     if 'worker_info' not in task:
-      continue
-    if last_process_date and task['last_updated'] < last_process_date:
       continue
     username = task['worker_info'].get('username', None)
     if username == None:

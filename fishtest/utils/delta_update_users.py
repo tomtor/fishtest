@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os
 import sys
+import fcntl
 
 from datetime import datetime, timedelta
 
@@ -95,24 +96,17 @@ def update_users():
   step_size = 100
   now = datetime.utcnow()
 
+  # prevent race condition with 'stop_run' in server
+  fcntl.flock(RunDb.lock_file, fcntl.LOCK_EX)
   # record this update run
   rundb.actiondb.update_stats()
-
-  # Race condition at this spot:
-  #
-  # If a run completes when flow control is here
-  # then that run might be counted twice. This window is small (eg < 50 ms)
-  # and fixing it would make the code more complex and somewhat slower.
-  # We would also have to store additional info in completed runs.
-  # I expect the totals to be >99% accurate, and probably much better.
-  # If we really need correct totals then the original update_users.py
-  # could be run on occasion.
 
   more_days = True
   first = True
   while more_days:
     runs = rundb.get_finished_runs(skip=current, limit=step_size)[0]
     if first:
+      fcntl.flock(RunDb.lock_file, fcntl.LOCK_UN)
       first = False
       print('race window: ' + str(datetime.utcnow() - now))
     if len(runs) == 0:

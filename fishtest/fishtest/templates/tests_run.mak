@@ -242,6 +242,8 @@ $(function() {
     $('input[name=base-options]').val('Hash=64');
     var bounds = $('select[name=bounds]').val();
     if (bounds == 'standard STC') { $('select[name=bounds]').val('standard LTC'); update_bounds(); }
+    if (bounds == 'custom' and $('input[name=sprt_elo0]').val() == '0.5' and $('input[name=sprt_elo1]').val() == '4.5')
+      { $('select[name=bounds]').val('standard LTC'); update_bounds(); }
   });
 });
 </script>

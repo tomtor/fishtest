@@ -232,12 +232,16 @@ $(function() {
     $('input[name=tc]').val('10+0.1');
     $('input[name=new-options]').val('Hash=8');
     $('input[name=base-options]').val('Hash=8');
+    var bounds = $('select[name=bounds]').val();
+    if (bounds == 'standard LTC') { $('select[name=bounds]').val('standard STC'); update_bounds(); }
   });
 
   $('#slow_test').click(function() {
     $('input[name=tc]').val('60+0.6');
     $('input[name=new-options]').val('Hash=64');
     $('input[name=base-options]').val('Hash=64');
+    var bounds = $('select[name=bounds]').val();
+    if (bounds == 'standard STC') { $('select[name=bounds]').val('standard LTC'); update_bounds(); }
   });
 });
 </script>

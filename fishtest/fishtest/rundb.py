@@ -32,6 +32,7 @@ class RunDb:
     self.pgndb = self.db['pgns']
     self.runs = self.db['runs']
     self.old_runs = self.db['old_runs']
+    self.deltas = self.db['deltas']
 
     self.chunk_size = 250
 

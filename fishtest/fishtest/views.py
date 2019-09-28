@@ -443,6 +443,9 @@ def validate_form(request):
 
 @view_config(route_name='tests_run', renderer='tests_run.mak')
 def tests_run(request):
+  if not authenticated_userid(request):
+    request.session.flash('Please login')
+    return HTTPFound(location=request.route_url('login'))
   if 'base-branch' in request.POST:
     try:
       data = validate_form(request)
@@ -468,6 +471,9 @@ def can_modify_run(request, run):
 
 @view_config(route_name='tests_modify')
 def tests_modify(request):
+  if not authenticated_userid(request):
+    request.session.flash('Please login')
+    return HTTPFound(location=request.route_url('login'))
   if 'num-games' in request.POST:
     run = request.rundb.get_run(request.POST['run'])
     before = copy.deepcopy(run)
@@ -515,6 +521,9 @@ def tests_modify(request):
 
 @view_config(route_name='tests_stop')
 def tests_stop(request):
+  if not authenticated_userid(request):
+    request.session.flash('Please login')
+    return HTTPFound(location=request.route_url('login'))
   if 'run-id' in request.POST:
     run = request.rundb.get_run(request.POST['run-id'])
     if not can_modify_run(request, run):
@@ -524,6 +533,7 @@ def tests_stop(request):
     request.rundb.stop_run(request.POST['run-id'])
 
     run = request.rundb.get_run(request.POST['run-id'])
+    run['finished'] = True
     request.actiondb.stop_run(authenticated_userid(request), run)
 
     cached_flash(request, 'Stopped run')
@@ -573,8 +583,11 @@ def purge_run(rundb, run):
 
   return purged
 
-@view_config(route_name='tests_purge', permission='approve_run')
+@view_config(route_name='tests_purge')
 def tests_purge(request):
+  if not has_permission('approve_run', request.context, request):
+    request.session.flash('Please login as approver')
+    return HTTPFound(location=request.route_url('login'))
   username = authenticated_userid(request)
 
   run = request.rundb.get_run(request.POST['run-id'])
@@ -594,6 +607,9 @@ def tests_purge(request):
 
 @view_config(route_name='tests_delete')
 def tests_delete(request):
+  if not authenticated_userid(request):
+    request.session.flash('Please login')
+    return HTTPFound(location=request.route_url('login'))
   if 'run-id' in request.POST:
     run = request.rundb.get_run(request.POST['run-id'])
     if not can_modify_run(request, run):
@@ -1004,6 +1020,8 @@ def tests(request):
 
     for run in finished:
       results = request.rundb.get_results(run)
+      if 'results_info' not in run:
+        run['results_info'] = format_results(results, run)
       if results['wins'] + results['losses'] + results['draws'] == 0:
         runs['failed'].append(run)
 

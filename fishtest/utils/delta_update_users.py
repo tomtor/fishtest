@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import os
 import sys
-import fcntl
 
 from datetime import datetime, timedelta
 
@@ -10,10 +9,16 @@ sys.path.append(os.path.expanduser('~/fishtest/fishtest'))
 from fishtest.rundb import RunDb
 from fishtest.views import parse_tc, delta_date
 
-def process_run(run, info, last_process_date=None):
-  if 'deleted' in run:
+new_deltas = {}
+skip = False
+
+def process_run(run, info, deltas=None):
+  global skip
+  if deltas and (skip or str(run['_id']) in deltas):
+    skip = True
     return
-  if last_process_date and run['last_updated'] < last_process_date:
+  if deltas != None and str(run['_id']) in new_deltas:
+    print('Warning: skipping repeated run!')
     return
   if 'username' in run['args']:
     username = run['args']['username']
@@ -31,7 +36,7 @@ def process_run(run, info, last_process_date=None):
       stats = task['stats']
       num_games = stats['wins'] + stats['losses'] + stats['draws']
     else:
-      num_games = task['num_games']
+      num_games = 0
 
     try:
       info[username]['last_updated'] = max(task['last_updated'], info[username]['last_updated'])
@@ -40,6 +45,8 @@ def process_run(run, info, last_process_date=None):
 
     info[username]['cpu_hours'] += float(num_games * int(run['args'].get('threads', 1)) * tc / (60 * 60))
     info[username]['games'] += num_games
+  if deltas != None:
+    new_deltas.update({ str(run['_id']) : None})
 
 def build_users(machines, info):
   for machine in machines:
@@ -61,18 +68,19 @@ def build_users(machines, info):
 def update_users():
   rundb = RunDb()
 
+  deltas = {}
   info = {}
   top_month = {}
 
-  last_stats = datetime.min
   clear_stats = True
   if len(sys.argv) > 1:
     print('scan all')
   else:
-    for stat in rundb.actiondb.get_actions(1, 'update_stats'):
-      last_stats = stat['time']
+    deltas = rundb.deltas.find_one()
+    if deltas:
       clear_stats = False
-  print('last: ' + str(last_stats))
+    else:
+      deltas = {}
 
   for u in rundb.userdb.get_users():
     username = u['username']
@@ -87,37 +95,35 @@ def update_users():
       info[username] = top_month[username].copy()
     else:
       info[username] = rundb.userdb.user_cache.find_one({'username': username})
+      if not info[username]:
+        info[username] = top_month[username].copy()
+      else:
+        info[username]['games_per_hour'] = 0.0
 
   for run in rundb.get_unfinished_runs():
     process_run(run, top_month)
 
-  # Step through these 100 at a time to avoid using too much RAM
+  # Step through these in small batches (step size 100) to save RAM
   current = 0
   step_size = 100
+
   now = datetime.utcnow()
-
-  # prevent race condition with 'stop_run' in server
-  fcntl.flock(RunDb.lock_file, fcntl.LOCK_EX)
-  # record this update run
-  rundb.actiondb.update_stats()
-
   more_days = True
-  first = True
   while more_days:
     runs = rundb.get_finished_runs(skip=current, limit=step_size)[0]
-    if first:
-      fcntl.flock(RunDb.lock_file, fcntl.LOCK_UN)
-      first = False
-      print('race window: ' + str(datetime.utcnow() - now))
     if len(runs) == 0:
       break
     for run in runs:
-      process_run(run, info, last_stats)
-      if (now - run['start_time']).days < 31:
+      process_run(run, info, deltas)
+      if (now - run['start_time']).days < 30:
         process_run(run, top_month)
       elif not clear_stats:
         more_days = False
     current += step_size
+
+  if new_deltas:
+    rundb.deltas.remove()
+    rundb.deltas.save(new_deltas)
 
   machines = rundb.get_machines()
 
@@ -147,12 +153,16 @@ def update_users():
     # A safe guard against deleting long time users
     if not 'registration_time' in u \
       or u['registration_time'] < datetime.utcnow() - timedelta(days=38):
-        print('Warning: Found old user to delete: ' + u['_id'])
+        print('Warning: Found old user to delete: ' + str(u['_id']))
     else:
-      print('Delete: ' + u['_id'])
+      print('Delete: ' + str(u['_id']))
       rundb.userdb.users.remove({'_id': u['_id']})
 
   print('Successfully updated %d users' % (len(users)))
+
+  # record this update run
+  rundb.actiondb.update_stats()
+
 
 def main():
   update_users()

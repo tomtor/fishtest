@@ -232,17 +232,15 @@ $(function() {
     $('input[name=tc]').val('10+0.1');
     $('input[name=new-options]').val('Hash=8');
     $('input[name=base-options]').val('Hash=8');
-    var bounds = $('select[name=bounds]').val();
-    if (bounds == 'standard LTC') { $('select[name=bounds]').val('standard STC'); update_bounds(); }
+    if ($('input[name=sprt_elo0]').val() == '0' && $('input[name=sprt_elo1]').val() == '3.5')
+      { $('select[name=bounds]').val('standard STC'); update_bounds(); }
   });
 
   $('#slow_test').click(function() {
     $('input[name=tc]').val('60+0.6');
     $('input[name=new-options]').val('Hash=64');
     $('input[name=base-options]').val('Hash=64');
-    var bounds = $('select[name=bounds]').val();
-    if (bounds == 'standard STC') { $('select[name=bounds]').val('standard LTC'); update_bounds(); }
-    if (bounds == 'custom' && $('input[name=sprt_elo0]').val() == '0.5' && $('input[name=sprt_elo1]').val() == '4.5')
+    if ($('input[name=sprt_elo0]').val() == '0.5' && $('input[name=sprt_elo1]').val() == '4.5')
       { $('select[name=bounds]').val('standard LTC'); update_bounds(); }
   });
 });

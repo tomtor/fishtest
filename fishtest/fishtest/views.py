@@ -530,8 +530,8 @@ def tests_stop(request):
       request.session.flash('Unable to modify another users run!')
       return HTTPFound(location=request.route_url('tests'))
 
-    request.rundb.stop_run(request.POST['run-id'])
     run['finished'] = True
+    request.rundb.stop_run(request.POST['run-id'])
     request.actiondb.stop_run(authenticated_userid(request), run)
 
     cached_flash(request, 'Stopped run')
@@ -678,7 +678,10 @@ def format_results(run_results, run):
     else:
       result['style'] = '#FF6A6A'
   elif state == 'accepted':
-    result['style'] = '#44EB44'
+    if 'sprt' in run['args'] and (float(sprt['elo0']) + float(sprt['elo1'])) < 0.0:
+      result['style'] = '#66CCFF'
+    else:
+      result['style'] = '#44EB44'
   return result
 
 UUID_MAP = defaultdict(dict)

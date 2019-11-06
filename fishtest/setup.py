@@ -12,7 +12,8 @@ requires = [
     'pymongo',
     'numpy<1.16',
     'scipy<1.2',
-    'requests'
+    'requests',
+    'numba'
     ]
 
 setup(name='fishtest-server',

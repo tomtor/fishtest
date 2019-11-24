@@ -14,7 +14,7 @@ requires = [
     'numpy<1.16',
     'scipy<1.2',
     'requests',
-    'numba'
+    'numba',
     'boto'
     ]
 

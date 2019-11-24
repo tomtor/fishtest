@@ -17,7 +17,7 @@ try:
   from ConfigParser import SafeConfigParser
   config = SafeConfigParser()
 except ImportError:
-  from configparser import ConfigParser # Python3
+  from configparser import ConfigParser  # Python3
   config = ConfigParser()
 import zlib
 import base64
@@ -25,11 +25,12 @@ from optparse import OptionParser
 from games import run_games
 from updater import update
 from datetime import datetime
+from os import path
 
-WORKER_VERSION = 69
+WORKER_VERSION = 70
 ALIVE = True
-
 HTTP_TIMEOUT = 15.0
+
 
 def setup_config_file(config_file):
   ''' Config file setup, adds defaults if not existing '''
@@ -56,8 +57,9 @@ def setup_config_file(config_file):
     pass
 
   defaults = [('login', 'username', ''), ('login', 'password', ''),
+              ('parameters', 'protocol', 'https'),
               ('parameters', 'host', 'tests.stockfishchess.org'),
-              ('parameters', 'port', '80'),
+              ('parameters', 'port', '443'),
               ('parameters', 'concurrency', '3'),
               ('parameters', 'max_memory', str(int(mem / 2 / 1024 / 1024))),
               ('parameters', 'min_threads', '1'),
@@ -165,14 +167,16 @@ def worker(worker_info, password, remote):
   return success
 
 def main():
-  print("Worker started in " + os.getcwd() + " ...\n")
+  worker_dir = path.dirname(path.realpath(__file__))
+  print("Worker started in " + worker_dir + " ...\n")
 
   signal.signal(signal.SIGINT, on_sigint)
   signal.signal(signal.SIGTERM, on_sigint)
 
-  config_file = 'fishtest.cfg'
+  config_file = path.join(worker_dir, 'fishtest.cfg')
   config = setup_config_file(config_file)
   parser = OptionParser()
+  parser.add_option('-P', '--protocol', dest='protocol', default=config.get('parameters', 'protocol'))
   parser.add_option('-n', '--host', dest='host', default=config.get('parameters', 'host'))
   parser.add_option('-p', '--port', dest='port', default=config.get('parameters', 'port'))
   parser.add_option('-c', '--concurrency', dest='concurrency', default=config.get('parameters', 'concurrency'))
@@ -190,13 +194,10 @@ def main():
       sys.stderr.write('%s [username] [password]\n' % (sys.argv[0]))
       sys.exit(1)
 
-  # Re-route old IP
-  if '54.235.120.254' in options.host:
-    options.host = 'tests.stockfishchess.org'
-
   # Write command line parameters to the config file
   config.set('login', 'username', args[0])
   config.set('login', 'password', args[1])
+  config.set('parameters', 'protocol', options.protocol)
   config.set('parameters', 'host', options.host)
   config.set('parameters', 'port', options.port)
   config.set('parameters', 'concurrency', options.concurrency)
@@ -205,7 +206,16 @@ def main():
   with open(config_file, 'w') as f:
     config.write(f)
 
-  remote = 'http://%s:%s' % (options.host, options.port)
+  if options.protocol.lower() not in ['http', 'https']:
+    sys.stderr.write('Wrong protocol, use https or http\n')
+    sys.exit(1)
+  elif options.protocol.lower() == 'http' and options.port == '443':
+    # Rewrite old port 443 to 80
+    options.port = '80'
+  elif options.protocol.lower() == 'https' and options.port == '80':
+    # Rewrite old port 80 to 443
+    options.port = '443'
+  remote = '%s://%s:%s' % (options.protocol.lower(), options.host, options.port)
   print('Worker version %s connecting to %s' % (WORKER_VERSION, remote))
 
   try:
@@ -232,6 +242,8 @@ def main():
   success = True
   global ALIVE
   while ALIVE:
+    if path.isfile(path.join(worker_dir, 'fish.exit')):
+      break
     if not success:
       time.sleep(HTTP_TIMEOUT)
     success = worker(worker_info, args[1], remote)

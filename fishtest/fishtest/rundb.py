@@ -619,7 +619,9 @@ class RunDb:
 
     return result
 
+  #@jit
   def update_spsa(self, worker, run, spsa_results):
+    stime = time.time()
     spsa = run['args']['spsa']
     if 'clipping' not in spsa:
         spsa['clipping'] = 'old'
@@ -660,6 +662,7 @@ class RunDb:
 
     if grow_summary:
       spsa['param_history'].append(summary)
+    eprint(time.time() - stime)
 
 @jit(nopython=True)
 def jit_spsa_param_clip_round(theta, pmin, pmax, increment, clipping):

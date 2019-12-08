@@ -76,7 +76,7 @@
           <li><a href="/login">Login</a></li>
           <li><a href="/logout">Logout</a></li>
           %if len(request.userdb.get_pending()) > 0:
-          <li style="color:red"><a href="/pending">Pending (${len(request.userdb.get_pending())})</a></li>
+          <li><a style="color:red" href="/pending">Pending (${len(request.userdb.get_pending())})</a></li>
           %else:
           <li><a href="/pending">Pending</a></li>
           %endif

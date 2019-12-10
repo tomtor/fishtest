@@ -322,7 +322,9 @@ class RunDb:
     if time.time() > self.task_time + 60:
       self.task_runs = []
       for r in self.get_unfinished_runs():
-        self.sum_cores(r)
+        run = self.get_run(r['_id'])
+        self.sum_cores(run)
+        r['cores'] = run['cores']
         self.task_runs.append(r)
       self.task_runs.sort(key=lambda r: (-r['args']['priority'],
         r['cores'] / (float(r['args']['throughput']) if float(r['args']['throughput']) > 0 else 1) * 100.0, r['_id']))

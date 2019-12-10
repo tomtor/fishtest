@@ -35,6 +35,7 @@ class CreateRunDBTest(unittest.TestCase):
     self.assertFalse(run['tasks'][0][u'active'])
     run['tasks'][0][u'active'] = True
     run['tasks'][0][u'worker_info'] = {'username': 'worker1', 'unique_key': 'travis', 'concurrency': 1}
+    run['cores'] = 1
 
     print(util.find_run()['args'])
 

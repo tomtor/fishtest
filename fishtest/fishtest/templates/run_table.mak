@@ -75,7 +75,7 @@
     %else:
     ${run['args']['num_games']}
     %endif
-    @ ${run['args']['tc']} th ${str(run['args'].get('threads',1))}<br>${('cores: '+str(run['cores'])) if 'cores'] in run else ''}</td>
+    @ ${run['args']['tc']} th ${str(run['args'].get('threads',1))}<br>${('cores: '+str(run['cores'])) if not run['finished'] and 'cores' in run else ''}</td>
     <td style="word-break:break-word">${run['args'].get('info', '')}</td>
    </tr>
   %endfor

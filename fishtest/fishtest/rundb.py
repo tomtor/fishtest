@@ -271,6 +271,13 @@ class RunDb:
 
     return results
 
+  def sum_cores(self, run):
+    cores = 0
+    for task in run['tasks']:
+      if task['active']:
+        cores += int(task['worker_info']['concurrency'])
+    run['cores'] = cores
+
   def recalc_prio(self, run, task_id=None):
     if task_id is None:
       task_id = -1
@@ -304,12 +311,15 @@ class RunDb:
       return {'task_waiting': False}
 
   def sync_request_task(self, worker_info):
-
     if time.time() > self.task_time + 60:
       self.task_runs = []
       for r in self.get_unfinished_runs():
+        run = self.get_run(r['_id'])
+        self.sum_cores(run)
+        r['cores'] = run['cores']
         self.task_runs.append(r)
-      self.task_runs.sort(key=lambda r: (-r['args']['priority'], -r['args']['internal_priority'], r['_id']))
+      self.task_runs.sort(key=lambda r: (-r['args']['priority'],
+        r['cores'] / (float(r['args']['throughput']) if float(r['args']['throughput']) > 0 else 1) * 100.0, r['_id']))
       self.task_time = time.time()
 
     max_threads = int(worker_info['concurrency'])
@@ -364,15 +374,18 @@ class RunDb:
     if not run_found:
       return {'task_waiting': False}
 
-    self.recalc_prio(run, task_id)
-
-    self.buffer(run, False)
+    # self.recalc_prio(run, task_id)
 
     for runt in self.task_runs:
       if runt['_id'] == run['_id']:
         runt['args']['internal_priority'] = run['args']['internal_priority']
-        self.task_runs.sort(key=lambda r: (-r['args']['priority'], -r['args']['internal_priority'], r['_id']))
+        self.sum_cores(run)
+        runt['cores'] = run['cores']
+        self.task_runs.sort(key=lambda r: (-r['args']['priority'],
+          r['cores'] / (float(r['args']['throughput']) if float(r['args']['throughput']) > 0 else 1) * 100.0, r['_id']))
         break
+
+    self.buffer(run, False)
 
     return {'run': run, 'task_id': task_id}
 
@@ -428,6 +441,7 @@ class RunDb:
     task['stats'] = stats
     task['nps'] = nps
     if num_games >= task['num_games']:
+      run['cores'] -= task['worker_info']['concurrency']
       task['pending'] = False # Make pending False before making active false to prevent race in request_task
       task['active'] = False
       flush = True
@@ -486,6 +500,7 @@ class RunDb:
     if run is None:
       run = self.get_run(run_id)
       save_it = True
+    run.pop('cores', None)
     prune_idx = len(run['tasks'])
     for idx, task in enumerate(run['tasks']):
       is_active = task['active']

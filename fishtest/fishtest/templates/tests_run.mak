@@ -169,9 +169,9 @@ Cowardice,150,0,200,10,0.0020"""})['raw_params']}</textarea>
     </div>
   </div>
   <div class="control-group">
-    <label class="control-label">Throughput:</label>
+    <label class="control-label">Throughput%:</label>
     <div class="controls">
-      <input name="throughput" value="${args.get('throughput', 3000)}">
+      <input name="throughput" value="${args.get('throughput', 100)}">
     </div>
   </div>
   <div class="control-group">
@@ -240,6 +240,7 @@ $(function() {
     $('input[name=tc]').val('60+0.6');
     $('input[name=new-options]').val('Hash=64');
     $('input[name=base-options]').val('Hash=64');
+    $('input[name=throughput]').val('600');
     if ($('input[name=sprt_elo0]').val() == '-1.5' && $('input[name=sprt_elo1]').val() == '4.5')
       { $('select[name=bounds]').val('standard LTC'); update_bounds(); }
   });

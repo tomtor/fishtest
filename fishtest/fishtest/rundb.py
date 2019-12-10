@@ -386,9 +386,7 @@ class RunDb:
       if runt['_id'] == run['_id']:
         runt['args']['internal_priority'] = run['args']['internal_priority']
         self.sum_cores(run)
-        # runt['cores'] += int(worker_info['concurrency'])
         runt['cores'] = run['cores']
-        # self.task_runs.sort(key=lambda r: (-r['args']['priority'], -r['args']['internal_priority'], r['_id']))
         self.task_runs.sort(key=lambda r: (-r['args']['priority'],
           r['cores'] / (float(r['args']['throughput']) if float(r['args']['throughput']) > 0 else 1) * 100.0, r['_id']))
         break

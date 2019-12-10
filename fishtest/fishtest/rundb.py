@@ -279,6 +279,13 @@ class RunDb:
 
     return results
 
+  def sum_cores(self, run):
+    cores = 0
+    for task in run['tasks']:
+      if task['active']:
+        cores += int(task['worker_info'].get('min_threads', 1))
+    run['cores'] = cores
+
   def recalc_prio(self, run, task_id=None):
     if task_id is None:
       task_id = -1
@@ -312,12 +319,13 @@ class RunDb:
       return {'task_waiting': False}
 
   def sync_request_task(self, worker_info):
-
     if time.time() > self.task_time + 60:
       self.task_runs = []
       for r in self.get_unfinished_runs():
+        self.sum_cores(r)
         self.task_runs.append(r)
-      self.task_runs.sort(key=lambda r: (-r['args']['priority'], -r['args']['internal_priority'], r['_id']))
+      self.task_runs.sort(key=lambda r: (
+        r['cores'] / (float(run['args']['throughput']) if float(run['args']['throughput']) > 0 else 1) * 100.0, r['_id']))
       self.task_time = time.time()
 
     max_threads = int(worker_info['concurrency'])

@@ -989,7 +989,8 @@ def tests(request):
         else:
           runs[state].append(run)
 
-      runs['pending'].sort(key=lambda run: (run['args']['priority'], run['args']['itp']))
+      runs['pending'].sort(key=lambda run: (run['args']['priority'],
+                                            run['args']['itp'] if 'itp' in run['args'] else 100))
       runs['active'].sort(reverse=True, key=lambda run: ('sprt' in run['args'], run['results_info']['llr'] if 'llr' in run['results_info'] else 0,
                                                        'spsa' not in run['args'], run['results']['wins'] + run['results']['draws'] + run['results']['losses']))
 

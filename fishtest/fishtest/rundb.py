@@ -20,6 +20,7 @@ from fishtest.userdb import UserDb
 from fishtest.actiondb import ActionDb
 
 import fishtest.stat_util
+from fishtest.views import format_results
 
 class RunDb:
 
@@ -285,9 +286,13 @@ class RunDb:
     itp *= math.sqrt(run['args']['threads'])
     if 'sprt' not in run['args']:
       itp *= 0.5
-    if 'results_info' in run and 'llr' in run['results_info']:
-      llr = float(run['results_info']['llr'])
-      itp *= (5 + llr) / 5
+    else:
+      results = self.get_results(run)
+      run['results_info'] = format_results(results, run)
+      if 'llr' in run['results_info']:
+        llr = run['results_info']['llr']
+        print(run['_id'], llr)
+        itp *= (5 + llr) / 5
     run['args']['itp'] = itp
 
   def sum_cores(self, run):

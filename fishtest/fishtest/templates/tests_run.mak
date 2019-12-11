@@ -240,7 +240,6 @@ $(function() {
     $('input[name=tc]').val('60+0.6');
     $('input[name=new-options]').val('Hash=64');
     $('input[name=base-options]').val('Hash=64');
-    $('input[name=throughput]').val('600');
     if ($('input[name=sprt_elo0]').val() == '-1.5' && $('input[name=sprt_elo1]').val() == '4.5')
       { $('select[name=bounds]').val('standard LTC'); update_bounds(); }
   });

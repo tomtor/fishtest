@@ -70,7 +70,7 @@ class RunDb:
               username=None,
               tests_repo=None,
               auto_purge=True,
-              throughput=3000,
+              throughput=100,
               priority=0):
     if start_time == None:
       start_time = datetime.utcnow()
@@ -96,8 +96,8 @@ class RunDb:
       'tests_repo': tests_repo,
       'auto_purge': auto_purge,
       'throughput': throughput,
+      'itp': 100,  # internal throughput
       'priority': priority,
-      'internal_priority': - time.mktime(start_time.timetuple()),
     }
 
     if sprt != None:
@@ -279,27 +279,23 @@ class RunDb:
 
     return results
 
+  def calc_itp(self, run):
+    itp = run['throughput']
+    itp *= math.sqrt(float(run['args']['tc'].split('+')[0]) / 10)
+    itp *= math.sqrt(run['args']['threads'])
+    if 'sprt' not in run['args']:
+      itp *= 0.5
+    if 'llr' in run['results_info']:
+      llr = float(run['results_info']['llr'])
+      itp *= (5 + llr) / 5
+    run['args']['itp'] = itp
+
   def sum_cores(self, run):
     cores = 0
     for task in run['tasks']:
       if task['active']:
         cores += int(task['worker_info']['concurrency'])
     run['cores'] = cores
-
-  def recalc_prio(self, run, task_id=None):
-    if task_id is None:
-      task_id = -1
-      for task in run['tasks']:
-        task_id = task_id + 1
-        if not task['active'] and task['pending']:
-          break
-    # Recalculate internal priority based on task start date and throughput
-    # Formula: - second_since_epoch - played_and_allocated_tasks * 3600 * chunk_size / games_throughput
-    # With default value 'throughput = 3000', this means that the priority is unchanged as long as
-    # we play at rate '3000 games / hour'.
-    if (run['args']['throughput'] != None and run['args']['throughput'] != 0):
-      run['args']['internal_priority'] = - time.mktime(run['start_time'].timetuple()) - \
-        task_id * 3600 * self.chunk_size * run['args']['threads'] / run['args']['throughput']
 
   # Limit concurrent request_task
   task_lock = threading.Lock()
@@ -325,9 +321,11 @@ class RunDb:
         run = self.get_run(r['_id'])
         self.sum_cores(run)
         r['cores'] = run['cores']
+        self.calc_itp(run)
+        r['args']['itp'] = run['args']['itp']
         self.task_runs.append(r)
       self.task_runs.sort(key=lambda r: (-r['args']['priority'],
-        r['cores'] / (float(r['args']['throughput']) if float(r['args']['throughput']) > 0 else 1) * 100.0, r['_id']))
+        r['cores'] / r['args']['itp'] * 100.0, r['_id']))
       self.task_time = time.time()
 
     max_threads = int(worker_info['concurrency'])
@@ -382,15 +380,12 @@ class RunDb:
     if not run_found:
       return {'task_waiting': False}
 
-    # self.recalc_prio(run, task_id)
-
     for runt in self.task_runs:
       if runt['_id'] == run['_id']:
-        runt['args']['internal_priority'] = run['args']['internal_priority']
         self.sum_cores(run)
         runt['cores'] = run['cores']
         self.task_runs.sort(key=lambda r: (-r['args']['priority'],
-          r['cores'] / (float(r['args']['throughput']) if float(r['args']['throughput']) > 0 else 1) * 100.0, r['_id']))
+          r['cores'] / r['args']['itp'] * 100.0, r['_id']))
         break
 
     self.buffer(run, False)

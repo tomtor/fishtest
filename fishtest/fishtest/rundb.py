@@ -285,7 +285,7 @@ class RunDb:
     itp *= math.sqrt(run['args']['threads'])
     if 'sprt' not in run['args']:
       itp *= 0.5
-    if 'llr' in run['results_info']:
+    if 'results_info' in run and 'llr' in run['results_info']:
       llr = float(run['results_info']['llr'])
       itp *= (5 + llr) / 5
     run['args']['itp'] = itp

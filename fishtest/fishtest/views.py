@@ -784,7 +784,7 @@ def get_chi2(tasks, bad_users):
   std_error = numpy.sqrt(expected * numpy.outer((1 - row_sums / grand_total), (1 - column_sums / grand_total)))
   adj_residual = raw_residual / std_error
   for idx in range(len(users)):
-    users[users.keys()[idx]] = numpy.max(numpy.abs(adj_residual[idx]))
+    users[list(users.keys())[idx]] = numpy.max(numpy.abs(adj_residual[idx]))
   chi2 = numpy.sum(raw_residual * raw_residual / expected)
   return {
     'chi2': chi2,

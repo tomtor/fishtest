@@ -280,7 +280,7 @@ class RunDb:
     return results
 
   def calc_itp(self, run):
-    itp = run['throughput']
+    itp = run['args']['throughput']
     itp *= math.sqrt(float(run['args']['tc'].split('+')[0]) / 10)
     itp *= math.sqrt(run['args']['threads'])
     if 'sprt' not in run['args']:

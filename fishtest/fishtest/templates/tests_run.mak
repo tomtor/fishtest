@@ -170,7 +170,13 @@ Cowardice,150,0,200,10,0.0020"""})['raw_params']}</textarea>
   <div class="control-group">
     <label class="control-label">Throughput%:</label>
     <div class="controls">
-      <input name="throughput" value="${args.get('throughput', 100)}">
+      <select name="throughput">
+        <option value="10">10%</option>
+        <option value="25">25%</option>
+        <option value="50">50%</option>
+        <option selected="selected" value="100">100%</option>
+        <option style="color:red" value="200">200%</option>
+      </select>
     </div>
   </div>
   <div class="control-group">

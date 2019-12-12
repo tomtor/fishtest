@@ -18,9 +18,9 @@ from pymongo import MongoClient, ASCENDING, DESCENDING
 
 from fishtest.userdb import UserDb
 from fishtest.actiondb import ActionDb
+from fishtest.views import format_results
 
 import fishtest.stat_util
-from fishtest.views import format_results
 
 class RunDb:
 
@@ -282,6 +282,10 @@ class RunDb:
 
   def calc_itp(self, run):
     itp = run['args']['throughput']
+    if itp < 1:
+      itp = 1
+    elif itp > 500:
+      itp = 500
     itp *= math.sqrt(float(run['args']['tc'].split('+')[0]) / 10)
     itp *= math.sqrt(run['args']['threads'])
     if 'sprt' not in run['args']:
@@ -291,7 +295,6 @@ class RunDb:
       run['results_info'] = format_results(results, run)
       if 'llr' in run['results_info']:
         llr = run['results_info']['llr']
-        print(run['_id'], llr)
         itp *= (5 + llr) / 5
     run['args']['itp'] = itp
 
@@ -390,7 +393,7 @@ class RunDb:
         self.sum_cores(run)
         runt['cores'] = run['cores']
         self.task_runs.sort(key=lambda r: (-r['args']['priority'],
-          r['cores'] / r['args']['itp'] * 100.0, r['_id']))
+          r['cores'] / r['args']['itp'] * 100.0, -r['args']['itp'], r['_id']))
         break
 
     self.buffer(run, False)

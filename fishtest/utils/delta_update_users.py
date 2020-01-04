@@ -128,12 +128,12 @@ def update_users():
       try:
         process_run(run, info, deltas)
       except:
-        print("Exception on run: ", run)
+        print("Exception on run: ", run['_id'])
       if (now - run['start_time']).days < 30:
         try:
           process_run(run, top_month)
         except:
-          print("Exception on run: ", run)
+          print("Exception on run: ", run['_id'])
       elif not clear_stats:
         more_days = False
     current += step_size

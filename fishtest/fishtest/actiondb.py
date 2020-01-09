@@ -11,7 +11,7 @@ class ActionDb:
     q = {}
     if action:
       q['action'] = action
-    else
+    else:
       q['action'] != 'update_stats'
     if username:
       q['username'] = username

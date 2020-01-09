@@ -12,7 +12,7 @@ class ActionDb:
     if action:
       q['action'] = action
     else:
-      q['action'] != 'update_stats'
+      q['action'] = {"$ne" : 'update_stats' }
     if username:
       q['username'] = username
     return self.actions.find(q, sort=[('_id', DESCENDING)], limit=max_num)

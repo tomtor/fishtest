@@ -17,7 +17,7 @@
   <div class="control-group">
     <label class="control-label">Test options:</label>
     <div class="controls">
-    <input name="new-options" value="${args.get('new_options', 'Hash=8')}">
+    <input name="new-options" value="${args.get('new_options', 'Hash=16')}">
     </div>
   </div>
   <div class="control-group">
@@ -35,7 +35,7 @@
   <div class="control-group">
     <label class="control-label">Base options:</label>
     <div class="controls">
-    <input name="base-options" value="${args.get('base_options', 'Hash=8')}">
+    <input name="base-options" value="${args.get('base_options', 'Hash=16')}">
     </div>
   </div>
   <div class="control-group">
@@ -234,8 +234,8 @@ $(function() {
 
   $('#fast_test').click(function() {
     $('input[name=tc]').val('10+0.1');
-    $('input[name=new-options]').val('Hash=8');
-    $('input[name=base-options]').val('Hash=8');
+    $('input[name=new-options]').val('Hash=16');
+    $('input[name=base-options]').val('Hash=16');
     if ($('input[name=sprt_elo0]').val() == '0.0' && $('input[name=sprt_elo1]').val() == '2.0')
       { $('select[name=bounds]').val('standard STC'); update_bounds(); }
   });

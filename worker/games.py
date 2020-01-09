@@ -25,7 +25,7 @@ except ImportError:
   from queue import Queue, Empty  # python 3.x
 
 # Global because is shared across threads
-old_stats = {'wins':0, 'losses':0, 'draws':0, 'crashes':0, 'time_losses':0}
+old_stats = {'wins':0, 'losses':0, 'draws':0, 'crashes':0, 'time_losses':0, 'pentanomial':5*[0]}
 
 IS_WINDOWS = 'windows' in platform.system().lower()
 
@@ -41,7 +41,7 @@ def is_64bit():
 
 HTTP_TIMEOUT = 15.0
 
-FISHCOOKING_URL = 'https://github.com/mcostalba/FishCooking'
+REPO_URL = 'https://github.com/official-stockfish/books'
 ARCH = 'ARCH=x86-64-modern' if is_64bit() else 'ARCH=x86-32'
 EXE_SUFFIX = ''
 MAKE_CMD = 'make COMP=gcc ' + ARCH
@@ -95,7 +95,7 @@ def verify_signature(engine, signature, remote, payload, concurrency):
 
 def setup(item, testing_dir):
   """Download item from FishCooking to testing_dir"""
-  tree = requests.get(github_api(FISHCOOKING_URL) + '/git/trees/setup', timeout=HTTP_TIMEOUT).json()
+  tree = requests.get(github_api(REPO_URL) + '/git/trees/master', timeout=HTTP_TIMEOUT).json()
   for blob in tree['tree']:
     if blob['path'] == item:
       print('Downloading %s ...' % (item))
@@ -205,8 +205,73 @@ def enqueue_output(out, queue):
 w_params = None
 b_params = None
 
+
+def update_pentanomial(line,rounds):
+  def result_to_score(_result):
+    if _result=="1-0":
+      return 2
+    elif _result=="0-1":
+      return 0
+    elif _result=="1/2-1/2":
+      return 1
+    else:
+      return -1
+  if not 'pentanomial' in rounds.keys():
+    rounds['pentanomial']=5*[0]
+  if not 'trinomial' in rounds.keys():
+    rounds['trinomial']=3*[0]
+  # Parse line like this:
+  # Finished game 4 (Base-5446e6f vs New-1a68b26): 1/2-1/2 {Draw by adjudication}
+  line=line.split()
+  if line[0]=='Finished' and line[1]=='game' and len(line)>=7:
+    round_=int(line[2])
+    current={}
+    rounds[round_]=current
+    current['white']=line[3][1:]
+    current['black']=line[5][:-2]
+    i=current['result']=result_to_score(line[6])
+    if round_%2==0:
+      if i!=-1:
+        rounds['trinomial'][2-i]+=1   #reversed colors
+      odd=round_-1
+      even=round_
+    else:
+      if i!=-1:
+        rounds['trinomial'][i]+=1
+      odd=round_
+      even=round_+1
+    if odd in rounds.keys() and even in rounds.keys():
+      assert(rounds[odd]['white'][0:3]=='New')
+      assert(rounds[odd]['white']==rounds[even]['black'])
+      assert(rounds[odd]['black']==rounds[even]['white'])
+      i=rounds[odd]['result']
+      j=rounds[even]['result']  # even is reversed colors
+      if i!=-1 and j!=-1:
+        rounds['pentanomial'][i+2-j]+=1
+        del rounds[odd]
+        del rounds[even]
+        rounds['trinomial'][i]-=1
+        rounds['trinomial'][2-j]-=1
+        assert(rounds['trinomial'][i]>=0)
+        assert(rounds['trinomial'][2-j]>=0)
+  pentanomial=[rounds['pentanomial'][i]+old_stats['pentanomial'][i] for i in range(0,5)]
+  return pentanomial
+
+def validate_pentanomial(wld,rounds):
+  def results_to_score(results):
+    return sum([results[i]*(i/2.0) for i in range(0,len(results))])
+  LDW=[wld[1],wld[2],wld[0]]
+  s3=results_to_score(LDW)
+  s5=results_to_score(rounds['pentanomial'])+results_to_score(rounds['trinomial'])
+  assert(sum(LDW)==2*sum(rounds['pentanomial'])+sum(rounds['trinomial']))
+  epsilon=1e-4
+  assert(abs(s5-s3)<epsilon)
+
+
 def run_game(p, remote, result, spsa, spsa_tuning, tc_limit):
   global old_stats
+  rounds={}
+
   failed_updates = 0
 
   q = Queue()
@@ -248,6 +313,9 @@ def run_game(p, remote, result, spsa, spsa_tuning, tc_limit):
       chunks = line.split(':')
       chunks = chunks[1].split()
       wld = [int(chunks[0]), int(chunks[2]), int(chunks[4])]
+
+      validate_pentanomial(wld,rounds)
+
       result['stats']['wins']   = wld[0] + old_stats['wins']
       result['stats']['losses'] = wld[1] + old_stats['losses']
       result['stats']['draws']  = wld[2] + old_stats['draws']
@@ -278,6 +346,9 @@ def run_game(p, remote, result, spsa, spsa_tuning, tc_limit):
           kill_process(p)
           break
         time.sleep(HTTP_TIMEOUT)
+
+    pentanomial=update_pentanomial(line,rounds)
+    result['stats']['pentanomial']=pentanomial
 
   if datetime.datetime.now() >= end_time:
     print(str(datetime.datetime.now()) + ' is past end time ' + str(end_time))
@@ -336,12 +407,14 @@ def run_games(worker_info, password, remote, run, task_id):
     'password': password,
     'run_id': str(run['_id']),
     'task_id': task_id,
-    'stats': {'wins':0, 'losses':0, 'draws':0, 'crashes':0, 'time_losses':0},
+    'stats': {'wins':0, 'losses':0, 'draws':0, 'crashes':0, 'time_losses':0, 'pentanomial':5*[0]},
   }
 
   # Have we run any games on this task yet?
   global old_stats
-  old_stats = task.get('stats', {'wins':0, 'losses':0, 'draws':0, 'crashes':0, 'time_losses':0})
+  old_stats = task.get('stats', {'wins':0, 'losses':0, 'draws':0, 'crashes':0, 'time_losses':0, 'pentanomial':5*[0]})
+  if not 'pentanomial' in old_stats.keys():
+    old_stats['pentanomial']=5*[0]
   result['stats']['crashes'] = old_stats.get('crashes', 0)
   result['stats']['time_losses'] = old_stats.get('time_losses', 0)
   games_remaining = task['num_games'] - (old_stats['wins'] + old_stats['losses'] + old_stats['draws'])
@@ -354,7 +427,7 @@ def run_games(worker_info, password, remote, run, task_id):
   base_options = run['args']['base_options']
   threads = int(run['args']['threads'])
   spsa_tuning = 'spsa' in run['args']
-  repo_url = run['args'].get('tests_repo', FISHCOOKING_URL)
+  repo_url = run['args'].get('tests_repo', REPO_URL)
   games_concurrency = int(worker_info['concurrency']) / threads
 
   # Format options according to cutechess syntax
@@ -410,7 +483,12 @@ def run_games(worker_info, password, remote, run, task_id):
 
   # Download book if not already existing
   if not os.path.exists(os.path.join(testing_dir, book)) or os.stat(os.path.join(testing_dir, book)).st_size == 0:
-    setup(book, testing_dir)
+    zipball = book + '.zip'
+    setup(zipball, testing_dir)
+    zip_file = ZipFile(zipball)
+    zip_file.extractall()
+    zip_file.close()
+    os.remove(zipball)
 
   # Download cutechess if not already existing
   if not os.path.exists(cutechess):

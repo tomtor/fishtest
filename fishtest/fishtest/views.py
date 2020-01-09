@@ -17,7 +17,7 @@ from pyramid.view import view_config, forbidden_view_config
 from pyramid.httpexceptions import HTTPFound, HTTPBadRequest
 from pyramid.response import Response
 
-import fishtest.stat_util
+import fishtest.stats.stat_util
 
 # For caching the tests output
 cache_time = 2
@@ -36,11 +36,12 @@ def cached_flash(request, requestString):
   request.session.flash(requestString)
   return
 
-with open(os.path.join('fishtest', 'static', 'favicon.ico'), 'rb') as f:
+_here = os.path.dirname(__file__)
+with open(os.path.join(_here, 'static', 'favicon.ico'), 'rb') as f:
   _icon = f.read()
 _fi_response = Response(content_type='image/x-icon', body=_icon)
 
-with open(os.path.join('fishtest', 'static', 'robots.txt'), 'r') as f:
+with open(os.path.join(_here, 'static', 'robots.txt'), 'r') as f:
   _robots = f.read()
 _robots_response = Response(content_type='text/plain', body= _robots)
 
@@ -420,7 +421,7 @@ def validate_form(request):
       'alpha': 0.05,
       'elo1': float(request.POST['sprt_elo1']),
       'beta': 0.05,
-      'drawelo': 240.0,
+      'elo_model': 'logistic'
     }
     # Limit on number of games played.  Shouldn't be hit in practice as long as it is larger than > ~200000
     # must scale with chunk_size to avoid overloading the server.
@@ -665,17 +666,24 @@ def format_results(run_results, run):
   if 'sprt' in run['args']:
     sprt = run['args']['sprt']
     state = sprt.get('state', '')
-
-    stats = fishtest.stat_util.SPRT(run_results,
-                           elo0=sprt['elo0'],
-                           alpha=sprt['alpha'],
-                           elo1=sprt['elo1'],
-                           beta=sprt['beta'],
-                           drawelo=sprt['drawelo'])
+    elo_model=sprt.get('elo_model','BayesElo')
+    stats = fishtest.stats.stat_util.SPRT(run_results,
+                                          elo0=sprt['elo0'],
+                                          alpha=sprt['alpha'],
+                                          elo1=sprt['elo1'],
+                                          beta=sprt['beta'],
+                                          elo_model=elo_model
+                                          )
     result['llr'] = stats['llr']
-    result['info'].append('LLR: %.2f (%.2lf,%.2lf) [%.2f,%.2f]' % (stats['llr'], stats['lower_bound'], stats['upper_bound'], sprt['elo0'], sprt['elo1']))
+    if elo_model=='BayesElo':
+      result['info'].append('LLR: %.2f (%.2lf,%.2lf) [%.2f,%.2f]' % (stats['llr'], stats['lower_bound'], stats['upper_bound'], sprt['elo0'], sprt['elo1']))
+    else:
+      result['info'].append('LLR: %.2f (%.2lf,%.2lf) {%.2f,%.2f}' % (stats['llr'], stats['lower_bound'], stats['upper_bound'], sprt['elo0'], sprt['elo1']))
   else:
-    elo, elo95, los = fishtest.stat_util.get_elo(WLD)
+    if 'pentanomial' in run_results.keys():
+      elo, elo95, los = fishtest.stats.stat_util.get_elo(run_results['pentanomial'])
+    else:
+      elo, elo95, los = fishtest.stats.stat_util.get_elo([WLD[1],WLD[2],WLD[0]])
 
     # Display the results
     eloInfo = 'ELO: %.2f +-%.1f (95%%)' % (elo, elo95)
@@ -689,6 +697,8 @@ def format_results(run_results, run):
       state = 'accepted'
 
   result['info'].append('Total: %d W: %d L: %d D: %d' % (sum(WLD), WLD[0], WLD[1], WLD[2]))
+  if 'pentanomial' in run_results.keys():
+    result['info'].append("Ptnml(0-2): "+", ".join(str(run_results['pentanomial'][i]) for i in range(0,5)))
 
   if state == 'rejected':
     if WLD[0] > WLD[1]:
@@ -832,6 +842,12 @@ def calculate_residuals(run):
   chi2['bad_users'] = bad_users
   return chi2
 
+@view_config(route_name='tests_stats', renderer='tests_stats.mak')
+def tests_stats(request):
+  run = request.rundb.get_run(request.matchdict['id'])
+  request.rundb.get_results(run)
+  return {'run':run}
+
 @view_config(route_name='tests_view_spsa_history', renderer='json')
 def tests_view_spsa_history(request):
   run = request.rundb.get_run(request.matchdict['id'])
@@ -866,9 +882,9 @@ def tests_view(request):
       value += '  (' + run['args']['msg_base'][:50] + ')'
 
     if name == 'sprt' and value != '-':
-      value = 'elo0: %.2f alpha: %.2f elo1: %.2f beta: %.2f state: %s' % \
+      value = 'elo0: %.2f alpha: %.2f elo1: %.2f beta: %.2f state: %s (%s)' % \
               (value['elo0'], value['alpha'], value['elo1'], value['beta'],
-               value.get('state', '-'))
+               value.get('state', '-'), value.get('elo_model','BayesElo'))
 
     if name == 'spsa' and value != '-':
       iter_local = value['iter'] + 1 # assume at least one completed, and avoid division by zero
@@ -1042,7 +1058,11 @@ def tests(request):
             info['info'][0] += ' (%.1f hrs)' % (eta)
           if 'sprt' in run['args']:
             sprt = run['args']['sprt']
-            info['info'].append(('[%.2f,%.2f]') % (sprt['elo0'], sprt['elo1']))
+            elo_model=sprt.get('elo_model','BayesElo')
+            if elo_model=='BayesElo':
+              info['info'].append(('[%.2f,%.2f]') % (sprt['elo0'], sprt['elo1']))
+            else:
+              info['info'].append(('{%.2f,%.2f}') % (sprt['elo0'], sprt['elo1']))
 
     else: # not full_info
       cores = 0

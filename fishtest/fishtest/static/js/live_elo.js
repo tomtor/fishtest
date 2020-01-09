@@ -5,30 +5,31 @@ var LOS_chart=null;
 var LLR_chart=null;
 var ELO_chart=null;
 
-window.onpopstate=function(e){
-    displayURL(e.state);
-};
-                
-var Module={};
-// Emscripten callback. 
-Module.onRuntimeInitialized=function() {
-    history.replaceState(""+location,"","");
-    google.charts.setOnLoadCallback(function(){
-        LOS_chart = new google.visualization.Gauge(document.getElementById('LOS_chart_div'));
-        LLR_chart = new google.visualization.Gauge(document.getElementById('LLR_chart_div'));
-        ELO_chart = new google.visualization.Gauge(document.getElementById('ELO_chart_div'));
-        clear_gauges();
-        displayURL(""+window.location)
-    });
-}
+google.charts.setOnLoadCallback(function(){
+    LOS_chart = new google.visualization.Gauge(document.getElementById('LOS_chart_div'));
+    LLR_chart = new google.visualization.Gauge(document.getElementById('LLR_chart_div'));
+    ELO_chart = new google.visualization.Gauge(document.getElementById('ELO_chart_div'));
+    clear_gauges();
+    displayURL(""+window.location)
+});
 
-function compute(m){
+function collect(m){
     var sprt= m.args.sprt;
-    var ret=Module.ccall('export_json',
-                         'string',
-                         ['number','number','number','number','number','number','number','number','number'],
-                         [sprt.alpha,sprt.beta,sprt.elo0,sprt.elo1,0.95,0,m.results['wins'],m.results['draws'],m.results['losses']]);
-    return JSON.parse(ret);
+    var results=m.results;
+    var ret= m.elo;
+    ret.alpha=sprt.alpha;
+    ret.beta=sprt.beta;
+    ret.elo_raw0=sprt.elo0;
+    ret.elo_raw1=sprt.elo1;
+    ret.elo_model=sprt.elo_model;
+    ret.W=results.wins;
+    ret.D=results.draws;
+    ret.L=results.losses;
+    ret.ci_lower=ret.ci[0];
+    ret.ci_upper=ret.ci[1];
+    ret.games=ret.W+ret.D+ret.L;
+    ret.p=0.05;
+    return ret;
 }
 
 
@@ -45,8 +46,12 @@ function decodeURL(url){
     return null;
 }
 
-function sanitizeURL(url){
+function viewURL(url){
     return "/tests/view/"+url;
+}
+
+function statsURL(url){
+    return "/tests/stats/"+url;
 }
 
 function set_gauges(LLR,a,b,LOS,elo,ci_lower,ci_upper){
@@ -130,9 +135,10 @@ function escapeHtml (string) {
 }
 
 function display_data(items){
-    var link=sanitizeURL(items['_id']);
+    var link=viewURL(items['_id']);
+    var stats=statsURL(items['_id']);
 
-    var j=compute(items);
+    var j=collect(items);
     document.getElementById("error").style.display="none";
     document.getElementById("data").style.visibility="visible";
     document.getElementById("commit").innerHTML="<a href="+items.args.tests_repo+"/compare/"
@@ -140,7 +146,7 @@ function display_data(items){
     document.getElementById("username").innerHTML=escapeHtml(items.args.username);
     document.getElementById("tc").innerHTML=escapeHtml(items.args.tc);
     document.getElementById("info").innerHTML=escapeHtml(items.args.info);
-    document.getElementById("sprt").innerHTML="elo0:&nbsp;"+j.elo_raw0.toFixed(2)+"&nbsp;&nbsp;alpha:&nbsp;"+j.alpha.toFixed(2)+"&nbsp;&nbsp;elo1:&nbsp;"+j.elo_raw1.toFixed(2)+"&nbsp;&nbsp;beta:&nbsp;"+j.beta.toFixed(2);
+    document.getElementById("sprt").innerHTML="elo0:&nbsp;"+j.elo_raw0.toFixed(2)+"&nbsp;&nbsp;alpha:&nbsp;"+j.alpha.toFixed(2)+"&nbsp;&nbsp;elo1:&nbsp;"+j.elo_raw1.toFixed(2)+"&nbsp;&nbsp;beta:&nbsp;"+j.beta.toFixed(2)+" ("+j.elo_model+")";
     document.getElementById("elo").innerHTML=j.elo.toFixed(2)+" ["+j.ci_lower.toFixed(2)+","+j.ci_upper.toFixed(2)+"] ("+100*(1-j.p).toFixed(2)+"%"+")";
     document.getElementById("LLR").innerHTML=j.LLR.toFixed(2)+" ["+j.a.toFixed(2)+","+j.b.toFixed(2)+"]"+(items.args.sprt.state?" ("+items.args.sprt.state+")":"");
     document.getElementById("LOS").innerHTML=""+(100*j.LOS).toFixed(1)+"%";
@@ -183,7 +189,7 @@ function follow_live(testURL, retry){
     }
     var xhttp = new XMLHttpRequest();
     var timestamp=(new Date()).getTime();
-    xhttp.open("GET", "/api/get_run/"+test+'?'+timestamp, true);
+    xhttp.open("GET", "/api/get_elo/"+test+'?'+timestamp, true);
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4) {
             if(this.status == 200){

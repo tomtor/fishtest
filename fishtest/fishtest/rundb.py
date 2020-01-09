@@ -342,11 +342,7 @@ class RunDb:
         r['args']['itp'] = run['args']['itp']
         self.task_runs.append(r)
       self.task_runs.sort(key=lambda r: (-r['args']['priority'],
-<<<<<<< HEAD
-        r['cores'] / r['args']['itp'] * 100.0, r['_id']))
-=======
         r['cores'] / r['args']['itp'] * 100.0, -r['args']['itp'], r['_id']))
->>>>>>> Server3
       self.task_time = time.time()
 
     max_threads = int(worker_info['concurrency'])
@@ -465,12 +461,8 @@ class RunDb:
     task['stats'] = stats
     task['nps'] = nps
     if num_games >= task['num_games']:
-<<<<<<< HEAD
-      run['cores'] -= task['worker_info']['concurrency']
-=======
       if 'cores' in run:
         run['cores'] -= task['worker_info']['concurrency']
->>>>>>> Server3
       task['pending'] = False # Make pending False before making active false to prevent race in request_task
       task['active'] = False
       flush = True

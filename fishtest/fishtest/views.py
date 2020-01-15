@@ -579,6 +579,10 @@ def purge_run(rundb, run):
   for task in run['tasks']:
     if task['worker_key'] in chi2['bad_users']:
       purged = True
+      if 'purged' not in run['args']:
+        run['args']['purged'] = []
+      if task['worker_key'] not in run['args']['purged']:
+        run['args']['purged'].append(task['worker_key'])
       run['bad_tasks'].append(task)
       if 'stats' in task:
         del task['stats']
@@ -867,7 +871,7 @@ def tests_view(request):
                'base_tag', 'base_signature', 'base_options', 'resolved_base',
                'sprt', 'num_games', 'spsa', 'tc', 'threads', 'book', 'book_depth',
                'auto_purge', 'priority', 'itp', 'username', 'tests_repo',
-               'info']:
+               'purged', 'info']:
 
     if not name in run['args']:
       continue

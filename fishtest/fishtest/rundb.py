@@ -258,6 +258,8 @@ class RunDb:
     has_pentanomial=True
     pentanomial=5*[0]
     for task in run['tasks']:
+      if 'bad' in task:
+        continue
       if 'stats' in task:
         stats = task['stats']
         results['wins'] += stats['wins']

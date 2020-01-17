@@ -829,7 +829,7 @@ def calculate_residuals(run):
       else:
         task['residual_color'] = '#FF6A6A'
 
-      if chi2['p'] < 0.01 or task['residual'] > 7.0:
+      if chi2['p'] < 0.001 or task['residual'] > 7.0:
         if len(worst_user) == 0 or task['residual'] > worst_user['residual']:
           worst_user['worker_key'] = task['worker_key']
           worst_user['residual'] = task['residual']
@@ -1014,6 +1014,7 @@ def tests(request):
 
               results = request.rundb.get_results(run, True)
               run['results_info'] = format_results(results, run)
+              request.rundb.buffer(run, True)
 
           if purged == 0:
             run['finished'] = True

@@ -577,12 +577,23 @@ def purge_run(rundb, run):
   if 'bad_tasks' not in run:
     run['bad_tasks'] = []
   for task in run['tasks']:
+    if 'bad' in task:
+      continue
     if task['worker_key'] in chi2['bad_users']:
       purged = True
+      """
+      if 'purged' not in run['args']:
+        run['args']['purged'] = []
+      if task['worker_key'] not in run['args']['purged']:
+        run['args']['purged'].append(task['worker_key'])
+      """
+      task['bad'] = True
       run['bad_tasks'].append(task)
+      """ Keep data so we can display it striked-through
       if 'stats' in task:
         del task['stats']
       del task['worker_key']
+      """
 
   if purged:
     # Generate new tasks if needed
@@ -743,6 +754,8 @@ def get_chi2(tasks, bad_users):
   # Aggregate results by worker
   users = {}
   for task in tasks:
+    if 'bad' in task:
+      continue
     task['worker_key'] = get_worker_key(task)
     if 'worker_info' not in task:
       continue
@@ -812,6 +825,8 @@ def calculate_residuals(run):
   for _ in range(1):
     worst_user = {}
     for task in run['tasks']:
+      if 'bad' in task:
+        continue
       if task['worker_key'] in bad_users:
         continue
       task['residual'] = residuals.get(task['worker_key'], 0.0)
@@ -867,7 +882,7 @@ def tests_view(request):
                'base_tag', 'base_signature', 'base_options', 'resolved_base',
                'sprt', 'num_games', 'spsa', 'tc', 'threads', 'book', 'book_depth',
                'auto_purge', 'priority', 'itp', 'username', 'tests_repo',
-               'info']:
+               'purged', 'info']:
 
     if not name in run['args']:
       continue

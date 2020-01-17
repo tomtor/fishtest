@@ -174,6 +174,9 @@ Gaussian Kernel Smoother&nbsp;&nbsp;<div class="btn-group"><button id="btn_smoot
     else:
       active_style = ''
   %>
+  %if 'bad' in task:
+  <del>
+  %endif
   <tr class="${active_style}">
    <td><a href="/api/pgn/${'%s-%d'%(run['_id'],idx)}.pgn">${idx}</a></td>
    %if approver and 'worker_info' in task and 'username' in task['worker_info']:
@@ -198,6 +201,9 @@ Gaussian Kernel Smoother&nbsp;&nbsp;<div class="btn-group"><button id="btn_smoot
    <td style="background-color:${task['residual_color']}">${'%.3f' % (task['residual'])}</td>
    %endif
   </tr>
+  %if 'bad' in task:
+  </del>
+  %endif
   %endfor
  </tbody>
 </table>

@@ -19,6 +19,9 @@ def main(global_config, **settings):
 
   config.include('pyramid_mako')
 
+  # Security
+  config.set_default_csrf_options(require_csrf=True)
+
   # Authentication
   with open(os.path.expanduser('~/fishtest.secret'), 'r') as f:
     secret = f.read()

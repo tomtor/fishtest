@@ -71,7 +71,7 @@ def mainpage(request):
   return HTTPFound(location=request.route_url('tests'))
 
 
-@view_config(route_name='login', renderer='mainpage.mak')
+@view_config(route_name='login', renderer='mainpage.mak', require_csrf=False)
 @forbidden_view_config(renderer='mainpage.mak')
 def login(request):
   login_url = request.route_url('login')

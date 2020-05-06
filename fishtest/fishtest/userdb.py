@@ -19,14 +19,22 @@ class UserDb:
   cache = {}
 
   def find(self, name):
+    CREDITS = 2500
     with self.user_lock:
       if name in self.cache:
         u = self.cache[name]
         if u['time'] > time.time() - 60:
           return u['user']
+        credits = u['user']['credits']
+        credits += (time.time() - u['time']) / 60 * 40  # 2400 calls/hr
+        if credits > CREDITS:
+          credits = CREDITS
+      else:
+        credits = CREDITS
       user = self.users.find_one({'username': name})
       if not user:
         return None
+      user['credits'] = credits
       self.cache[name] = {'user': user, 'time': time.time()}
       return user
 

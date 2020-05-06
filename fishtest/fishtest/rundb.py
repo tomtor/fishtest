@@ -411,6 +411,8 @@ class RunDb:
   task_time = 0
   task_runs = None
 
+  worker_runs = {}
+
   def request_task(self, worker_info):
     if self.task_semaphore.acquire(False):
       try:
@@ -454,6 +456,11 @@ class RunDb:
     if connections >= self.userdb.get_machine_limit(worker_info['username']):
       return {'task_waiting': False, 'hit_machine_limit': True}
 
+    # Limit worker Github API calls
+    user = self.userdb.find(worker_info['username'])
+    limit = user['credits'] <= 0
+    worker_key = worker_info['unique_key']
+
     # Get a new task that matches the worker requirements
     run_found = False
     for runt in self.task_runs:
@@ -471,6 +478,8 @@ class RunDb:
         need_tt *= max_threads // run['args']['threads']
 
       if run['approved'] \
+         and (not limit or (worker_key in self.worker_runs
+                            and run['_id'] in self.worker_runs[worker_key])) \
          and run['args']['threads'] <= max_threads \
          and run['args']['threads'] >= min_threads \
          and need_tt <= max_memory:
@@ -508,6 +517,13 @@ class RunDb:
         break
 
     self.buffer(run, False)
+
+    # Update API credits used
+    if worker_key not in self.worker_runs:
+      self.worker_runs[worker_key] = {}
+    if run['_id'] not in self.worker_runs[worker_key]:
+      user['credits'] = user['credits'] - 1
+      self.worker_runs[worker_key][run['_id']] = True
 
     return {'run': run, 'task_id': task_id}
 

@@ -31,7 +31,7 @@ WORKER_VERSION = 76
 ALIVE = True
 HTTP_TIMEOUT = 15.0
 
-MIN_RATE = 40  # Minimal remaining Github API calls
+MIN_RATE = 30  # Minimal remaining Github API calls
 
 
 def setup_config_file(config_file):

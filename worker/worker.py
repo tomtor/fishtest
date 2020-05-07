@@ -31,6 +31,8 @@ WORKER_VERSION = 76
 ALIVE = True
 HTTP_TIMEOUT = 15.0
 
+MIN_RATE = 40  # Minimal remaining Github API calls
+
 
 def setup_config_file(config_file):
   ''' Config file setup, adds defaults if not existing '''
@@ -80,6 +82,15 @@ def on_sigint(signal, frame):
   ALIVE = False
   raise Exception('Terminated by signal')
 
+rate = None
+
+def get_rate():
+  global rate
+  rate = requests.get('https://api.github.com/rate_limit', timeout=HTTP_TIMEOUT).json()['rate']
+  remaining = rate['remaining']
+  print("Remaining API calls:", remaining)
+  return remaining >= MIN_RATE
+
 def worker(worker_info, password, remote):
   global ALIVE
 
@@ -90,6 +101,9 @@ def worker(worker_info, password, remote):
 
   try:
     print('Fetch task...')
+    if not get_rate():
+      raise Exception('Near API limit')
+
     t0 = datetime.utcnow()
     req = requests.post(remote + '/api/request_version', data=json.dumps(payload), headers={'Content-type': 'application/json'}, timeout=HTTP_TIMEOUT)
     req = json.loads(req.text)
@@ -105,7 +119,11 @@ def worker(worker_info, password, remote):
     print("Worker version checked successfully in %ss" % ((datetime.utcnow() - t0).total_seconds()))
 
     t0 = datetime.utcnow()
-    req = requests.post(remote + '/api/request_task', data=json.dumps(payload), headers={'Content-type': 'application/json'}, timeout=HTTP_TIMEOUT)
+    worker_info['rate'] = rate
+    req = requests.post(remote + '/api/request_task',
+                        data=json.dumps(payload),
+                        headers={'Content-type': 'application/json'},
+                        timeout=HTTP_TIMEOUT)
     req = json.loads(req.text)
   except Exception as e:
     sys.stderr.write('Exception accessing host:\n')

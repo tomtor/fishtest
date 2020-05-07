@@ -458,7 +458,8 @@ class RunDb:
 
     # Limit worker Github API calls
     user = self.userdb.find(worker_info['username'])
-    limit = user['credits'] <= 0
+    # limit = user['credits'] <= 0
+    limit = worker_info['rate'] <= 40
     worker_key = worker_info['unique_key']
 
     # Get a new task that matches the worker requirements
